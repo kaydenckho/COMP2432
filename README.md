@@ -33,8 +33,8 @@ Output: char[][] schedule, 2D array containing schedule jobs
   char* SJF(..)
   char* RR(..)
   char* EDF(..)
-  
-#Number of algorithms to be done depends on your progress.
+  .
+  Only two algorihtms are required.
 
 Output module & analyzer module
 =====================================
