@@ -5,7 +5,6 @@ Tentative requirement specifications:
 ====================================
 main() as parent process, fork() used for Input, scheduling and generating .dat file in output & analysis stage.
 pipe() will be used for tranferring parameters in child processes. i.e. input -> scheduling -> generating .dat file.
-Each module in C header(.h) file.
 
 Input module:
 ====================================
