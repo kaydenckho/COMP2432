@@ -27,7 +27,7 @@ Scheduling module:
 ====================================
 Input: time_t start period
        time_t end_period
-       char[][], tasks, 2D array containing jobs to be scheduled,
+       char[][] tasks, 2D array containing jobs to be scheduled,
 Output: char[][] schedule, 2D array containing schedule jobs 
 
   char* FCFS(..)
