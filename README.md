@@ -1,5 +1,4 @@
-# COMP2432
-COMP2432 - Scheduling system
+# COMP2432 - Scheduling system(S3)
 ====================================
 
 Tentative requirement specifications:
