@@ -3,24 +3,25 @@ COMP2432 - Scheduling system
 ====================================
 
 Tentative requirement specifications:
-
-main() as parent process, fork() used for Input, scheduling and generating .dat file in output & analysis stage.
-pipe() will be used for tranferring parameters in child processes. i.e. input -> scheduling -> generating .dat file
+\n
+main() as parent process, fork() used for Input, scheduling and generating .dat file in output & analysis stage.\n
+pipe() will be used for tranferring parameters in child processes. i.e. input -> scheduling -> generating .dat file.\n
+Each module in C header(.h) file.\n
 
 Input module:
 ====================================
-Input: User inputs or file inputs(addBatch)
-Output: time_t start period
-        time_t end_period
-        char[][] tasks, 2D array containing jobs to be scheduled,
-        log files which records every user input, pls refer to project PDF file.
+Input: User inputs or file inputs(addBatch)\n
+Output: time_t start period\n
+        time_t end_period\n
+        char[][] tasks, 2D array containing jobs to be scheduled,\n
+        log files which records every user input, pls refer to project PDF file.\n
         
-int addPeriod(..)
-int addAssignment(..)
-int addProject(..)
-int addRevision(..)
-int addActivity()
-int addBatch(..)
+int addPeriod(..)\n
+int addAssignment(..)\n
+int addProject(..)\n
+int addRevision(..)\n
+int addActivity()\n
+int addBatch(..)\n
 
 Scheduling module:
 ====================================
