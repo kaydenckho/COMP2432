@@ -19,7 +19,7 @@ typedef struct date * Date_Ptr;
 char * validatePeriod(void);
 char * validateEvent(int * id, char * type, FILE * fp);
 /* First-come-first-serve algorithm */
-void FCFS(int id,int start_day, int end_day, int start_hour, int end_hour, Date date_arr[1000], int time_arr[1000], char * event_name_arr[1000], int duration_arr[1000], char timetable[][14][50], int progress_arr[1000], char * status_arr[1000]);
+void FCFS(int id,int start_day, int end_day, int start_hour, int end_hour, char * type_arr[1000], Date date_arr[1000], int time_arr[1000], char * event_name_arr[1000], int duration_arr[1000], char timetable[][14][50], int progress_arr[1000], char * status_arr[1000]);
 
 /* input validation for addPeriod */
 char * validatePeriod(void) {
@@ -208,12 +208,16 @@ char * validateEvent(int * id, char * type, FILE * fp) {
     return return_string;
 }
 /* First-come-first-serve algorithm */
-void FCFS(int id,int start_day, int end_day, int start_hour, int end_hour, Date date_arr[1000], int time_arr[1000], char * event_name_arr[1000], int duration_arr[1000], char timetable[][14][50], int progress_arr[1000], char * status_arr[1000]){
+void FCFS(int id,int start_day, int end_day, int start_hour, int end_hour,char * type_arr[1000] ,Date date_arr[1000], int time_arr[1000], char * event_name_arr[1000], int duration_arr[1000], char timetable[][14][50], int progress_arr[1000], char * status_arr[1000]){
     int count=0;  /* duration of each task*/
     int i,x,y;  /* for loop counters*/
+    int startDay=0;    /* default is 0, but start point for the case of addActivity and addRevision is the date specified*/
+    for (i=0;i<1000;i++){
+      status_arr[i]=NULL;
+    }
     for (i=0;i<id;i++){
         if (date_arr[i].day!=0){
-          if (date_arr[i].day<start_day || date_arr[i].day>end_day || date_arr[i].year!=2018 || date_arr[i].month!=4){
+          if (date_arr[i].day<start_day || date_arr[i].day>end_day || date_arr[i].year!=2019 || date_arr[i].month!=4){
             status_arr[i]="Rejected";
             progress_arr[i]=0;
           }
@@ -228,33 +232,45 @@ void FCFS(int id,int start_day, int end_day, int start_hour, int end_hour, Date 
             count=duration_arr[i];
             for (x=0;x<14;x++){
                 for (y=0;y<4;y++){
-                    if (strcmp(timetable[y][x],"N/A")==0){    /* if the timeslot is available*/
+                    if (strcmp(timetable[y][x],"N/A")==0 && count>0){    /* if the timeslot is available*/
+                      if(strcmp(type_arr[i],"addRevision")!=0 && strcmp(type_arr[i],"addActivity")!=0){
                         strcpy(timetable[y][x],event_name_arr[i]);   /* assign task for the timeslot*/
                         count--;   /*  duration of task by reduced by 1 after scheduled for a timeslot*/
                         if (count==0){
                             progress_arr[i]=100;             /* update progress record in main scheduler*/
                             status_arr[i]="Accepted";          /* update status record in main scheduler*/
-                            break;
                         }
+                      }
+                      else if(x>=(date_arr[i].day-start_day) && y>=(time_arr[i]-start_hour)){
+                        strcpy(timetable[y][x],event_name_arr[i]);   /* assign task for the timeslot*/
+                        count--;   /*  duration of task by reduced by 1 after scheduled for a timeslot*/
+                        if (count==0){
+                            progress_arr[i]=100;             /* update progress record in main scheduler*/
+                            status_arr[i]="Accepted";          /* update status record in main scheduler*/
+                        }
+                      }
                     }
                 }
-                if (count==0){
-                    break;
-                }
             }
-            if (count>0){    /* if the task is not fully scheduled*/
-                if (count!=duration_arr[i]){
+            }
+        }
+        if (count>0){    /* if the task is not fully scheduled*/
+            if (count!=duration_arr[i]){
+              if (type_arr[i]!="addRevision" || type_arr[i]!="addActivity"){
                   float prog = (float)(duration_arr[i]-count) / (float)duration_arr[i] *100; /*calculate percentage of completion*/
                   progress_arr[i]=(int)prog;     /* update progress record in main scheduler*/
                   status_arr[i]="Accepted";       /* update status record in main scheduler*/
-                }
-                else{
-                  progress_arr[i]=0;  /* Progress = 0 if task cannot be scheduled*/
-                  status_arr[i]="Rejected"; /* update status to "Rejected" in main scheduler if the task cannot be scheduled*/
-                }
+              }
+              else{
+                progress_arr[i]=0;  /* Progress = 0 if task cannot be scheduled*/
+                status_arr[i]="Rejected"; /* update status to "Rejected" in main scheduler if the task cannot be scheduled*/
+              }
+            }
+            else{
+              progress_arr[i]=0;  /* Progress = 0 if task cannot be scheduled*/
+              status_arr[i]="Rejected"; /* update status to "Rejected" in main scheduler if the task cannot be scheduled*/
             }
         }
-    }
 }
 
 int main(int argc, const char * argv[]) {
@@ -467,7 +483,7 @@ int main(int argc, const char * argv[]) {
                 else if (strcmp(command, "runS3") == 0) {
                     /* CAN BE DELETED!!!!!!!!!! JUST FOR TESTING / DEMONSTRATION ============================== */
                     /* TO BE WRITTEN... */
-                    FCFS(id,start_day,end_day,start_hour,end_hour,date_arr,time_arr,event_name_arr,duration_arr,timetable,progress_arr,status_arr);
+                    FCFS(id,start_day,end_day,start_hour,end_hour,type_arr,date_arr,time_arr,event_name_arr,duration_arr,timetable,progress_arr,status_arr);
                     write(fd2[write_pipe][1],timetable,4*14*50*sizeof(char)+1);
                     for (a = 0; a < 14; a ++) {
                         for (b = 0; b < 4; b ++) {
