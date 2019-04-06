@@ -213,58 +213,61 @@ void FCFS(int id, char * type_arr[1000] ,Date date_arr[1000], int time_arr[1000]
     int count=0;  /* duration of each task */
     int i,x,y;  /* for loop counters */
     for (i=0;i<id;i++){
-        /* Reject the request if the date and time is out of the period range */
-        if (strcmp(type_arr[i],"addRevision")==0 || strcmp(type_arr[i],"addActivity")==0){
-            if (status_arr[i]==NULL) {
-                if (strcmp(timetable[time_arr[i] - 19][date_arr[i].day - 8], "")==0) {
-                    status_arr[i]="Rejected";
+        if (status_arr[i] == NULL) {
+            /* Reject the request if the date and time is out of the period range */
+            if (strcmp(type_arr[i],"addRevision")==0 || strcmp(type_arr[i],"addActivity")==0){
+                if (strcmp(timetable[time_arr[i] - 19][date_arr[i].day - 8], "N/A") !=0) {
+                    status_arr[i] = malloc((strlen("Rejected") + 1) * sizeof(char));
+                    strcpy(status_arr[i],"Rejected");
+                    progress_arr[i] = 0;
                 }
             }
-        }
-        if (status_arr[i]!="Rejected") {
-            count=duration_arr[i];
-            for (x=0;x<14;x++){
-                for (y=0;y<4;y++){
-                    if (strcmp(timetable[y][x],"N/A")==0 && count>0){    /* if the timeslot is available */
-                        if(strcmp(type_arr[i],"addRevision")!=0 && strcmp(type_arr[i],"addActivity")!=0){
-                            strcpy(timetable[y][x],event_name_arr[i]);   /* assign task for the timeslot */
-                            count--;   /*  duration of task by reduced by 1 after scheduled for a timeslot */
-                            if (count==0){
-                                progress_arr[i]=100;             /* update progress record in main scheduler */
-                                status_arr[i]="Accepted";          /* update status record in main scheduler */
+            if (status_arr[i] == NULL || strcmp(status_arr[i],"Rejected") != 0) {
+                count=duration_arr[i];
+                for (x=0;x<14;x++){
+                    for (y=0;y<4;y++){
+                        if (strcmp(timetable[y][x],"N/A")==0 && count>0){    /* if the timeslot is available */
+                            if(strcmp(type_arr[i],"addRevision")!=0 && strcmp(type_arr[i],"addActivity")!=0){
+                                strcpy(timetable[y][x],event_name_arr[i]);   /* assign task for the timeslot */
+                                count--;   /*  duration of task by reduced by 1 after scheduled for a timeslot */
+                                if (count==0){
+                                    progress_arr[i]=100;             /* update progress record in main scheduler */
+                                    status_arr[i] = malloc((strlen("Accepted") + 1) * sizeof(char));
+                                    strcpy(status_arr[i],"Accepted");          /* update status record in main scheduler */
+                                }
                             }
-                        }
-                        else if(x==(date_arr[i].day-8) && y>=(time_arr[i]-19) && y<=(time_arr[i]-19+duration_arr[i])){
-                            strcpy(timetable[y][x],event_name_arr[i]);   /* assign task for the timeslot */
-                            count--;   /*  duration of task by reduced by 1 after scheduled for a timeslot */
-                            if (count==0){
-                                progress_arr[i]=100;             /* update progress record in main scheduler */
-                                status_arr[i]="Accepted";         /* update status record in main scheduler */
+                            else if(x==(date_arr[i].day-8) && y>=(time_arr[i]-19) && y<=(time_arr[i]-19+duration_arr[i])){
+                                strcpy(timetable[y][x],event_name_arr[i]);   /* assign task for the timeslot */
+                                count--;   /*  duration of task by reduced by 1 after scheduled for a timeslot */
+                                if (count==0){
+                                    progress_arr[i]=100;             /* update progress record in main scheduler */
+                                    status_arr[i] = malloc((strlen("Accepted") + 1) * sizeof(char));
+                                    strcpy(status_arr[i],"Accepted");          /* update status record in main scheduler */
+                                }
                             }
                         }
                     }
-                    else if ((strcmp(type_arr[i],"addRevision")==0 || strcmp(type_arr[i],"addActivity")==0) && count>0){
-                        progress_arr[i]=0;             /* update progress record in main scheduler */
-                        status_arr[i]="Rejected";
+                }
+                if (count>0){    /* if the task is not fully scheduled*/
+                    if (count<duration_arr[i]) {
+                        if (strcmp(type_arr[i],"addRevision")!=0 && strcmp(type_arr[i],"addActivity")!=0){
+                            float prog = (float)(duration_arr[i]-count) / (float)duration_arr[i] *100; /*calculate percentage of completion */
+                            progress_arr[i]=(int)prog;     /* update progress record in main scheduler */
+                            status_arr[i] = malloc((strlen("Accepted") + 1) * sizeof(char));
+                            strcpy(status_arr[i],"Accepted");       /* update status record in main scheduler */
+                        }
+                        else {
+                            progress_arr[i]=0;  /* Progress = 0 if task cannot be scheduled */
+                            status_arr[i] = malloc((strlen("Rejected") + 1) * sizeof(char));
+                            strcpy(status_arr[i],"Rejected"); /* update status to "Rejected" in main scheduler if the task cannot be scheduled */
+                        }
+                    }
+                    else {
+                        progress_arr[i]=0;  /* Progress = 0 if task cannot be scheduled */
+                        status_arr[i] = malloc((strlen("Rejected") + 1) * sizeof(char));
+                        strcpy(status_arr[i],"Rejected"); /* update status to "Rejected" in main scheduler if the task cannot be scheduled */
                     }
                 }
-            }
-        }
-        if (count>0){    /* if the task is not fully scheduled*/
-            if (count<duration_arr[i]){
-                if (strcmp(type_arr[i],"addRevision")!=0 && strcmp(type_arr[i],"addActivity")!=0){
-                    float prog = (float)(duration_arr[i]-count) / (float)duration_arr[i] *100; /*calculate percentage of completion */
-                    progress_arr[i]=(int)prog;     /* update progress record in main scheduler */
-                    status_arr[i]="Accepted";       /* update status record in main scheduler */
-                }
-                else{
-                    progress_arr[i]=0;  /* Progress = 0 if task cannot be scheduled */
-                    status_arr[i]="Rejected"; /* update status to "Rejected" in main scheduler if the task cannot be scheduled */
-                }
-            }
-            else{
-                progress_arr[i]=0;  /* Progress = 0 if task cannot be scheduled */
-                status_arr[i]="Rejected"; /* update status to "Rejected" in main scheduler if the task cannot be scheduled */
             }
         }
     }
@@ -299,7 +302,7 @@ int main(int argc, const char * argv[]) {
         pid = getpid() - parent_id;
         
         /* 1st child: schduling module */
-        if (pid == 1) {
+        if (pid == 3) {
             int i_read_pipe = 1; /* fd[1] is the pipe for scheduling module to read from input module */
             int i_write_pipe = 0; /* fd[0] is the pipe for scheduling module to write to input module */
             
@@ -373,19 +376,19 @@ int main(int argc, const char * argv[]) {
                     
                     /* saving the type into the type_arr */
                     if (strcmp (command, "addRe") == 0) {
-                        type_arr[id] = malloc(strlen("addRevision") * sizeof(char));
+                        type_arr[id] = malloc((strlen("addRevision") + 1) * sizeof(char));
                         strcpy(type_arr[id], "addRevision");
                     }
                     else if (strcmp (command, "addAc") == 0) {
-                        type_arr[id] = malloc(strlen("addActivity") * sizeof(char));
+                        type_arr[id] = malloc((strlen("addActivity") + 1) * sizeof(char));
                         strcpy(type_arr[id], "addActivity");
                     }
                     else if (strcmp (command, "addAs") == 0) {
-                        type_arr[id] = malloc(strlen("addAssignment") * sizeof(char));
+                        type_arr[id] = malloc((strlen("addAssignment") + 1) * sizeof(char));
                         strcpy(type_arr[id], "addAssignment");
                     }
                     else if (strcmp (command, "addPr") == 0) {
-                        type_arr[id] = malloc(strlen("addProject") * sizeof(char));
+                        type_arr[id] = malloc((strlen("addProject") + 1) * sizeof(char));
                         strcpy(type_arr[id], "addProject");
                     }
                     
@@ -455,10 +458,11 @@ int main(int argc, const char * argv[]) {
                         strcpy(event_name_arr[id], string);
                     }
                     
-                    /* the status of the invalid input is set to "Invalid" and the status of the valid input is set to "Valid" */
+                    /* the status of the invalid input is set to "Invalid" */
                     if (buffer[a - 1] == '0') {
-                        status_arr[id] = malloc(strlen("Rejected") * sizeof(char));
-                        strcpy(status_arr[id], "Rejected");
+                        status_arr[id] = malloc(strlen("Invalid") * sizeof(char));
+                        strcpy(status_arr[id], "Invalid");
+                        progress_arr[id] = 0;
                     }
                     
                     id ++; /* increment the id */
@@ -485,7 +489,15 @@ int main(int argc, const char * argv[]) {
                         }
                     }
                     
-                    /* reset the timetable for scheduling */
+                    /* reset the status of valid requests for next scheduling */
+                    for (a = 0; a < 1000; a ++) {
+                        if (status_arr[a] != NULL && strcmp(status_arr[a],"Invalid") != 0) {
+                            free(status_arr[a]);
+                            status_arr[a] = NULL;
+                        }
+                    }
+                     
+                    /* reset the timetable for next scheduling */
                     for (a = 0; a < 14; a ++) {
                         for (b = 0; b < 4; b ++) {
                             if (strcmp(timetable[b][a], "") != 0) strcpy(timetable[b][a], "N/A");
@@ -506,14 +518,13 @@ int main(int argc, const char * argv[]) {
             /* free all allocated space */
             for (a = 0; a < 1000; a ++) {
                 if (type_arr[id] != NULL) free(type_arr[id]);
-                if (status_arr[id] != NULL) free(status_arr[id]);
                 if (event_name_arr[id] != NULL) free(event_name_arr[id]);
             }
         }
         /* end of 1st child 1st child (Parent: input module, 1st child: scheduling module) */
         
         /* 2nd child (Parent: input module, 2st child: output&analyzer module) */
-        if (pid==2){
+        if (pid==4){
             int s_read_pipe = 3; /* fd[3] is the pipe for output&analyzer module to read from scheduling module */
             int s_write_pipe = 2; /* fd[2] is the pipe for output&analyzer module to write to scheduling module */
             
