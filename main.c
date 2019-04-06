@@ -216,19 +216,13 @@ void FCFS(int id,int start_day, int end_day, int start_hour, int end_hour,char *
       status_arr[i]=NULL;
     }
     for (i=0;i<id;i++){
-        if (date_arr[i].day!=0){
-          if (date_arr[i].day<start_day || date_arr[i].day>end_day || date_arr[i].year!=2019 || date_arr[i].month!=4){
-            status_arr[i]="Rejected";
-            progress_arr[i]=0;
-          }
-        }
         if (strcmp(type_arr[i],"addRevision")==0 || strcmp(type_arr[i],"addActivity")==0){
-          if (time_arr[i]<start_hour || time_arr[i]>end_hour){
+          if (date_arr[i].day<start_day || date_arr[i].day>end_day || date_arr[i].year!=2019 || date_arr[i].month!=4 || time_arr[i]<start_hour || time_arr[i]>end_hour){
             status_arr[i]="Rejected";
             progress_arr[i]=0;
           }
         }
-        if (event_name_arr[i] != NULL && status_arr[i]!="Rejected") {
+        if (status_arr[i]!="Rejected") {
             count=duration_arr[i];
             for (x=0;x<14;x++){
                 for (y=0;y<4;y++){
@@ -250,17 +244,16 @@ void FCFS(int id,int start_day, int end_day, int start_hour, int end_hour,char *
                         }
                         }
                     }
-                    else if (strcmp(type_arr[i],"addRevision")==0 || strcmp(type_arr[i],"addActivity")==0 && count>0){
+                    else if ((strcmp(type_arr[i],"addRevision")==0 || strcmp(type_arr[i],"addActivity")==0) && count>0){
                       progress_arr[i]=0;             /* update progress record in main scheduler*/
                       status_arr[i]="Rejected";
                     }
                 }
             }
             }
-        }
         if (count>0){    /* if the task is not fully scheduled*/
-            if (count!=duration_arr[i]){
-              if (type_arr[i]!="addRevision" || type_arr[i]!="addActivity"){
+            if (count<duration_arr[i]){
+              if (strcmp(type_arr[i],"addRevision")!=0 && strcmp(type_arr[i],"addActivity")!=0){
                   float prog = (float)(duration_arr[i]-count) / (float)duration_arr[i] *100; /*calculate percentage of completion*/
                   progress_arr[i]=(int)prog;     /* update progress record in main scheduler*/
                   status_arr[i]="Accepted";       /* update status record in main scheduler*/
@@ -275,6 +268,7 @@ void FCFS(int id,int start_day, int end_day, int start_hour, int end_hour,char *
               status_arr[i]="Rejected"; /* update status to "Rejected" in main scheduler if the task cannot be scheduled*/
             }
         }
+}
 }
 
 int main(int argc, const char * argv[]) {
@@ -444,7 +438,6 @@ int main(int argc, const char * argv[]) {
 
                         /* the input the invalid the the input date and time is out of the "period range" entered */
                         if (strcmp(timetable[time_arr[id] - 19][date_arr[id].day - 8], "N/A") != 0) {
-                            printf("ID: %d, The timeslot for input date and time is not available\n", id + 1);
                             buffer[a - 1] = '0'; /* set the indicator to 0 to indicate that the input is invalid */
                         }
                     }
