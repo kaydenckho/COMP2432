@@ -18,7 +18,8 @@ typedef struct date * Date_Ptr;
 /* function prototype */
 char * validatePeriod(void);
 char * validateEvent(int * id, char * type, FILE * fp);
-void FCFS(int id, char * event_name_arr[1000], int duration_arr[1000], char timetable[][14][50], int progress_arr[1000], char * status_arr[1000]); // First-come-first-serve algorithm
+/* First-come-first-serve algorithm */
+void FCFS(int id,int start_day, int end_day, int start_hour, int end_hour, Date date_arr[1000], int time_arr[1000], char * event_name_arr[1000], int duration_arr[1000], char timetable[][14][50], int progress_arr[1000], char * status_arr[1000]);
 
 /* input validation for addPeriod */
 char * validatePeriod(void) {
@@ -206,22 +207,33 @@ char * validateEvent(int * id, char * type, FILE * fp) {
     strcpy(return_string, string);
     return return_string;
 }
-// First-come-first-serve algorithm
-void FCFS(int id, char * event_name_arr[1000], int duration_arr[1000], char timetable[][14][50], int progress_arr[1000], char * status_arr[1000]){
-    int count;  // duration of each task
-    int i,x,y;  // for loop counters
+/* First-come-first-serve algorithm */
+void FCFS(int id,int start_day, int end_day, int start_hour, int end_hour, Date date_arr[1000], int time_arr[1000], char * event_name_arr[1000], int duration_arr[1000], char timetable[][14][50], int progress_arr[1000], char * status_arr[1000]){
+    int count=0;  /* duration of each task*/
+    int i,x,y;  /* for loop counters*/
     for (i=0;i<id;i++){
-        count=0;
-        if (event_name_arr[i] != NULL) {
+        if (date_arr[i].day!=0){
+          if (date_arr[i].day<start_day || date_arr[i].day>end_day || date_arr[i].year!=2018 || date_arr[i].month!=4){
+            status_arr[i]="Rejected";
+            progress_arr[i]=0;
+          }
+        }
+        if (time_arr[i]!=0){
+          if (time_arr[i]<start_hour || time_arr[i]>end_hour){
+            status_arr[i]="Rejected";
+            progress_arr[i]=0;
+          }
+        }
+        if (event_name_arr[i] != NULL && status_arr[i]!="Rejected") {
             count=duration_arr[i];
             for (x=0;x<14;x++){
                 for (y=0;y<4;y++){
-                    if (strcmp(timetable[y][x],"N/A")==0){    // if the timeslot is available
-                        strcpy(timetable[y][x],event_name_arr[i]);   // assign task for the timeslot
-                        count--;   //  duration of task by reduced by 1 after scheduled for a timeslot
+                    if (strcmp(timetable[y][x],"N/A")==0){    /* if the timeslot is available*/
+                        strcpy(timetable[y][x],event_name_arr[i]);   /* assign task for the timeslot*/
+                        count--;   /*  duration of task by reduced by 1 after scheduled for a timeslot*/
                         if (count==0){
-                            progress_arr[i]=100;             // update progress record in main scheduler
-                            status_arr[i]="Accepted";          // update status record in main scheduler
+                            progress_arr[i]=100;             /* update progress record in main scheduler*/
+                            status_arr[i]="Accepted";          /* update status record in main scheduler*/
                             break;
                         }
                     }
@@ -230,15 +242,15 @@ void FCFS(int id, char * event_name_arr[1000], int duration_arr[1000], char time
                     break;
                 }
             }
-            if (count>0){    // if the task is not fully scheduled
+            if (count>0){    /* if the task is not fully scheduled*/
                 if (count!=duration_arr[i]){
-                  float prog = (float)(duration_arr[i]-count) / (float)duration_arr[i] *100; //calculate percentage of completion
-                  progress_arr[i]=(int)prog;     // update progress record in main scheduler
-                  status_arr[i]="Accepted";       // update status record in main scheduler
+                  float prog = (float)(duration_arr[i]-count) / (float)duration_arr[i] *100; /*calculate percentage of completion*/
+                  progress_arr[i]=(int)prog;     /* update progress record in main scheduler*/
+                  status_arr[i]="Accepted";       /* update status record in main scheduler*/
                 }
                 else{
-                  progress_arr[i]=0;  // Progress = 0 if task cannot be scheduled
-                  status_arr[i]="Rejected"; // update status to "Rejected" in main scheduler if the task cannot be scheduled
+                  progress_arr[i]=0;  /* Progress = 0 if task cannot be scheduled*/
+                  status_arr[i]="Rejected"; /* update status to "Rejected" in main scheduler if the task cannot be scheduled*/
                 }
             }
         }
@@ -250,46 +262,52 @@ int main(int argc, const char * argv[]) {
     int id = 0;
     int parent_id = getpid();
     int pid;
-    int fd[2][2]; /* (1 * 2) pipes for communation between 1 pair of module (input module & scheduling module) */
+    int fd1[2][2]; /* (1 * 2) pipes for communication between 1 pair of module (input module & scheduling module) */
+    int fd2[2][2]; /* (1 * 2) pipes for communication between 1 pair of module (scheduling module & output&analyzer module) */
     char command [20] = "";
     char buffer[50];
-
     /* create pipes */
     for (a = 0; a < 2; a ++) {
-        if (pipe(fd[a]) < 0) {
-            printf("Pipe creation error\n");
+        if (pipe(fd1[a]) < 0) {
+            printf("Pipe1 creation error\n");
+            exit(1);
+        }
+        if (pipe(fd2[a]) < 0) {
+            printf("Pipe2 creation error\n");
             exit(1);
         }
     }
-
-    pid = fork(); /* create 1 child (Parent: input module, 1st child: scheduling module) */
-
+    for(a=0;a<2;a++){
+    /* create 1st child (Parent: input module, 1st child: scheduling module)*/
+    /* create 2nd child (Parent: input module, 2st child: output&analyzer module*/
+        if(getpid()==parent_id) pid=fork();
+    }
     if (pid < 0) {
         printf("Fork Failed\n");
         exit(1);
     }
     /* child process */
     else if (pid == 0) {
-
         pid = getpid() - parent_id;
         int read_pipe;
         int write_pipe;
 
         /* 1st child: schduling module */
         if (pid == 1) {
-            read_pipe = 1; /* fd[1] is the pipe for scheduling module to read from input module */
-            write_pipe = 0; /* fd[0] is the pipe for scheduling module to write to input module */
+            read_pipe = 1; /* fd1[1] is the pipe for scheduling module to read from input module */
+            write_pipe = 0; /* fd1[0] is the pipe for scheduling module to write to input module */
 
             /* close unused pipe end */
             for (a = 0; a < 2; a ++) {
                 if (a != read_pipe && a != write_pipe) {
-                    close(fd[a][0]);
-                    close(fd[a][1]);
+                    close(fd1[a][0]);
+                    close(fd1[a][1]);
                 }
-                else if (a == read_pipe) close(fd[a][1]);
-                else close(fd[a][0]);
+                else if (a == read_pipe) close(fd1[a][1]);
+                else close(fd1[a][0]);
             }
 
+            int start_day, end_day, start_hour, end_hour;
             char * type_arr [1000] = {NULL}; /* addRevision / addActivity / addAssignment / addProject */
             char * status_arr[1000] = {NULL}; /* Accepted / Rejected */
             char * event_name_arr[1000] = {NULL}; /* For addRevision (subject code) / addActivity (name of the event) / addAssignment (subject code with assignment number) / addProject (subject code with project number) */
@@ -304,7 +322,7 @@ int main(int argc, const char * argv[]) {
 
             char string[50] = "";
             /* wait for response until the write end of input module is closed (stop reading) */
-            while((a = read(fd[1][0], buffer, 50)) > 0) {
+            while((a = read(fd1[1][0], buffer, 50)) > 0) {
                 buffer[a] = 0;
 
                 /* read the first 5 characters to determine to type of command */
@@ -313,8 +331,6 @@ int main(int argc, const char * argv[]) {
 
                 /* addPeriod */
                 if (strcmp(command, "addPe") == 0) {
-
-                    int start_day, end_day, start_hour, end_hour;
 
                     /* saving the starting day */
                     for (a = 0; a < 2; a ++) string[a] = buffer[a + 18];
@@ -339,7 +355,7 @@ int main(int argc, const char * argv[]) {
                     /* add the timeslots or period to the timetable */
                     for (a = start_day - 8; a <= end_day - 8; a ++) {
                         for (b = start_hour - 19; b < end_hour - 19; b++) {
-                            strcpy(timetable[b][a], "N/A"); //* N/A means that that period is added but with no assignment */
+                            strcpy(timetable[b][a], "N/A"); /* N/A means that that period is added but with no assignment */
                         }
                     }
 
@@ -444,14 +460,15 @@ int main(int argc, const char * argv[]) {
 
                     id ++; /* increment the id */
 
-                    write(fd[write_pipe][1], "OK", 2); /* for synchronization */
+                    write(fd1[write_pipe][1], "OK", 2); /* for synchronization */
 
                 }
                 /* runS3 */
                 else if (strcmp(command, "runS3") == 0) {
                     /* CAN BE DELETED!!!!!!!!!! JUST FOR TESTING / DEMONSTRATION ============================== */
                     /* TO BE WRITTEN... */
-                    FCFS(id,event_name_arr,duration_arr,timetable,progress_arr,status_arr);
+                    FCFS(id,start_day,end_day,start_hour,end_hour,date_arr,time_arr,event_name_arr,duration_arr,timetable,progress_arr,status_arr);
+                    write(fd2[write_pipe][1],timetable,4*14*50*sizeof(char)+1);
                     for (a = 0; a < 14; a ++) {
                         for (b = 0; b < 4; b ++) {
                             if (strcmp(timetable[b][a], "") != 0) printf("Day 2019-4-%d Time %d:00 : %s\n", a + 8, b + 19, timetable[b][a]);
@@ -466,15 +483,15 @@ int main(int argc, const char * argv[]) {
                         }
                     }
 
-                    write(fd[write_pipe][1], "OK", 2); /* for synchronization */
+                    write(fd1[write_pipe][1], "OK", 2); /* for synchronization */
 
                     /* CAN BE DELETED!!!!!!!!!! JUST FOR TESTING / DEMONSTRATION ============================== */
                 }
             }
 
-            /* close all the pipes end when the input module stops writing (program ends) */
-            close(fd[read_pipe][0]);
-            close(fd[write_pipe][1]);
+            /* close all the pipes end when the input module stops writing (process ends) */
+            close(fd1[read_pipe][0]);
+            close(fd1[write_pipe][1]);
 
             /* free all allocated space */
             for (a = 0; a < 1000; a ++) {
@@ -483,18 +500,45 @@ int main(int argc, const char * argv[]) {
                 if (event_name_arr[id] != NULL) free(event_name_arr[id]);
             }
         }
+        /* end of 1st child 1st child (Parent: input module, 1st child: scheduling module) */
 
-        exit(0);
+        /* 2nd child (Parent: input module, 2st child: output&analyzer module) */
+        if (pid==2){
+            read_pipe = 1; /* fd1[1] is the pipe for output&analyzer module to read from scheduling module */
+            write_pipe = 0; /* fd1[0] is the pipe for output&analyzer module to write to scheduling module */
+            /* close unused pipe end */
+            for (a = 0; a < 2; a ++) {
+                if (a != read_pipe && a != write_pipe) {
+                    close(fd2[a][0]);
+                    close(fd2[a][1]);
+                  }
+                  else if (a == read_pipe) close(fd2[a][1]);
+                  else close(fd2[a][0]);
+            }
+            /* TO BE WRITTEN... */
+            char timetable[4][14][50] = {""}; /* a timetable for events in 19:00 to 23:00 ([4]) from 2019-04-08 to 2019-04-21 ([14]) ("" means that that period is not added) */
+            /* wait for response until the write end of scheduling module is closed (stop reading) */
+            while(a = read(fd2[1][0],timetable,4*14*50*sizeof(char)+1) >0 ) {
+                for (a = 0; a < 14; a ++) {
+                    for (b = 0; b < 4; b ++) {
+                        if (strcmp(timetable[b][a], "") != 0) printf("Day 2019-4-%d Time %d:00 : %s\n", a + 8, b + 19, timetable[b][a]);
+                    }
+                }
+            }
+            /* close all the pipes end when the input module stops writing (process ends) */
+            close(fd2[read_pipe][0]);
+            close(fd2[write_pipe][1]);
+        }
+        /* end of 2nd child (Parent: input module, 2st child: output&analyzer module)  */
     }
     /* Parent process: Input module */
     else {
-
         /* close unused pipe end */
         /* Parent uses pipes of even id to read */
         /* Parent uses pipes of odd id to write */
         for (a = 0; a < 2; a ++) {
-            if (a % 2 == 0) close(fd[a][1]);
-            else close(fd[a][0]);
+            if (a % 2 == 0) close(fd1[a][1]);
+            else close(fd1[a][0]);
         }
 
         char input[50] = ""; /* the string to be sent to the scheduler  (format: [user input] [indicator]) (indicator: '0': invalid / '1': valid) */
@@ -516,15 +560,15 @@ int main(int argc, const char * argv[]) {
                 free(return_string); /* free the allocated space */
                 /* send the input to scheduler only if the input for addPeriod is valid */
                 if (input[44] == '1') {
-                    write(fd[1][1], input, strlen(input));
+                    write(fd1[1][1], input, strlen(input));
                 }
             }
             else if (strcmp(command, "addRevision") == 0 || strcmp(command, "addActivity") == 0 || strcmp(command, "addAssignment") == 0 || strcmp(command, "addProject") == 0) {
                 return_string = validateEvent(&id, command, stdin);
                 strcpy(input, return_string);
                 free(return_string); /* free the allocated space */
-                write(fd[1][1], input, strlen(input)); /* send the input to scheduler */
-                read(fd[0][0], buffer, 50); /* for synchronization */
+                write(fd1[1][1], input, strlen(input)); /* send the input to scheduler */
+                read(fd1[0][0], buffer, 50); /* for synchronization */
             }
             else if (strcmp(command, "addBatch") == 0) {
                 scanf("%s", file_name);
@@ -543,18 +587,15 @@ int main(int argc, const char * argv[]) {
                     return_string = validateEvent(&id, command, fp);
                     strcpy(input, return_string);
                     free(return_string); /* free the allocated space */
-                    write(fd[1][1], input, strlen(input)); /* send the input to scheduler */
-                    read(fd[0][0], buffer, 50); /* for synchronization */
+                    write(fd1[1][1], input, strlen(input)); /* send the input to scheduler */
+                    read(fd1[0][0], buffer, 50); /* for synchronization */
                 }
                 fclose(fp); /* close the file */
             }
             else if (strcmp(command, "runS3") == 0) {
-                /* CAN BE DELETED!!!!!!!!!! JUST FOR TESTING / DEMONSTRATION ============================== */
-                /* TO BE WRITTEN... */
                 strcpy(input, command);
-                write(fd[1][1], input, strlen(input)); /* send the input to scheduler */
-                read(fd[0][0], buffer, 50); /* for synchronization */
-                /* CAN BE DELETED!!!!!!!!!! JUST FOR TESTING / DEMONSTRATION ============================== */
+                write(fd1[1][1], input, strlen(input)); /* send the input to scheduler */
+                read(fd1[0][0], buffer, 50); /* for synchronization */
             }
             else if (strcmp(command, "exitS3") == 0) {
                 continue;
@@ -567,11 +608,18 @@ int main(int argc, const char * argv[]) {
 
         /* close all the pipes end when the input module stops writing (program ends) */
         for (a = 0; a < 2; a ++) {
-            if (a % 2 == 0) close(fd[a][0]);
-            else close(fd[a][1]);
+            if (a % 2 == 0) {
+              close(fd1[a][0]);
+              close(fd2[a][0]);
+            }
+            else {
+              close(fd1[a][1]);
+              close(fd2[a][0]);
+            }
         }
 
-        while (wait(NULL) > 0); // wait for all child processes to finish
+        while(wait(NULL)>0);
         exit(0);
    }
+   /* end of parent process (input module) */
 }
