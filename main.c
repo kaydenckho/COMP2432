@@ -222,7 +222,7 @@ void FCFS(int id,int start_day, int end_day, int start_hour, int end_hour,char *
             progress_arr[i]=0;
           }
         }
-        if (time_arr[i]!=0){
+        if (strcmp(type_arr[i],"addRevision")==0 || strcmp(type_arr[i],"addActivity")==0){
           if (time_arr[i]<start_hour || time_arr[i]>end_hour){
             status_arr[i]="Rejected";
             progress_arr[i]=0;
@@ -241,14 +241,18 @@ void FCFS(int id,int start_day, int end_day, int start_hour, int end_hour,char *
                             status_arr[i]="Accepted";          /* update status record in main scheduler*/
                         }
                       }
-                      else if(x>=(date_arr[i].day-start_day) && y>=(time_arr[i]-start_hour)){
+                      else if(x==(date_arr[i].day-start_day) && y>=(time_arr[i]-start_hour) && y<=(time_arr[i]-start_hour+duration_arr[i])){
                         strcpy(timetable[y][x],event_name_arr[i]);   /* assign task for the timeslot*/
                         count--;   /*  duration of task by reduced by 1 after scheduled for a timeslot*/
                         if (count==0){
                             progress_arr[i]=100;             /* update progress record in main scheduler*/
-                            status_arr[i]="Accepted";          /* update status record in main scheduler*/
+                            status_arr[i]="Accepted";         /* update status record in main scheduler*/
                         }
-                      }
+                        }
+                    }
+                    else if (strcmp(type_arr[i],"addRevision")==0 || strcmp(type_arr[i],"addActivity")==0 && count>0){
+                      progress_arr[i]=0;             /* update progress record in main scheduler*/
+                      status_arr[i]="Rejected";
                     }
                 }
             }
