@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 /* structure for a date (Year + Month + Day) */
 struct date {
@@ -16,6 +18,7 @@ typedef struct date * Date_Ptr;
 /* function prototype */
 char * validatePeriod(void);
 char * validateEvent(int * id, char * type, FILE * fp);
+void FCFS(int id, char * event_name_arr[1000], int duration_arr[1000], char timetable[][14][50], int progress_arr[1000], char * status_arr[1000]); // First-come-first-serve algorithm
 
 /* input validation for addPeriod */
 char * validatePeriod(void) {
@@ -29,7 +32,7 @@ char * validatePeriod(void) {
     char parameter [20] = "";
     char string[50] = "addPeriod"; /* initialize the string to be copied to return_string */
     char * return_string; /* string to be returned */
-    
+
     /* reading and checking start date */
     scanf("%s", parameter);
     strcat(string, " ");
@@ -52,7 +55,7 @@ char * validatePeriod(void) {
         printf("Invalid starting day added (Valid day: 8 - 21)\n");
         strcpy(valid, "0");
     }
-    
+
     /* reading and checking end date */
     scanf("%s", parameter);
     strcat(string, " ");
@@ -75,7 +78,7 @@ char * validatePeriod(void) {
         printf("Invalid ending day added (Valid day: %d - 21)\n", start_date.day);
         strcpy(valid, "0");
     }
-    
+
     /* reading and checking start time */
     scanf("%s", parameter);
     strcat(string, " ");
@@ -92,7 +95,7 @@ char * validatePeriod(void) {
         printf("Invalid starting minute added (Valid minute: 00)\n");
         strcpy(valid, "0");
     }
-    
+
     /* reading and checking end time */
     scanf("%s", parameter);
     strcat(string, " ");
@@ -109,10 +112,10 @@ char * validatePeriod(void) {
         printf("Invalid ending minute added (Valid minute: 00)\n");
         strcpy(valid, "0");
     }
-    
+
     strcat(string, " ");
     strcat(string, valid); /* concatenate the indicator (0 / 1) to the string to indicate whether the input is valid or not */
-    
+
     /* return the string as an input to scheduler */
     /* format: [use input] [indicator] */
     return_string = malloc((strlen(string) + 1) * sizeof(char));
@@ -131,13 +134,13 @@ char * validateEvent(int * id, char * type, FILE * fp) {
     char string[50] = "";
     strcpy(string, type); /* initialize the string to be copied to return_string */
     char * return_string; /* string to be returned */
-    
+
     /* reading (subject code with assignment or project number for addAssignment and addProject respectively) / (subject code or name of event for addRevision and addActivity
      respectively) */
     fscanf(fp, "%s", parameter);
     strcat(string, " ");
     strcat(string, parameter); /* concatenate the event name to the string */
-    
+
     /* reading and checking (due date for addAssignment & addProject) / (date for addRevision & addActivity) */
     fscanf(fp, "%s", parameter);
     strcat(string, " ");
@@ -160,7 +163,7 @@ char * validateEvent(int * id, char * type, FILE * fp) {
         printf("ID: %d, Invalid day. (Valid day: 8 - 21)\n", *id + 1);
         strcpy(valid, "0");
     }
-    
+
     /* reading and checking time for addRevision & addActivity */
     if (strcmp(type, "addRevision") == 0 || strcmp(type, "addActivity") == 0) {
         fscanf(fp, "%s", parameter);
@@ -178,9 +181,9 @@ char * validateEvent(int * id, char * type, FILE * fp) {
             printf("ID: %d, Invalid minute (Valid minute: 00)\n", *id + 1);
             strcpy(valid, "0");
         }
-        
+
     }
-    
+
     /* reading and checking duration */
     fscanf(fp, "%s", parameter);
     strcat(string, " ");
@@ -191,17 +194,55 @@ char * validateEvent(int * id, char * type, FILE * fp) {
         printf("ID: %d, Invalid duration. (Valid duration: > 0)\n", *id + 1);
         strcpy(valid, "0");
     }
-    
+
     (*id) ++; /* increment the id */
-    
+
     strcat(string, " ");
     strcat(string, valid); /* concatenate the indicator (0 / 1) to the string to indicate whether the input is valid or not */
-    
+
     /* return the string as an input to scheduler */
     /* format: [use input] [indicator] */
     return_string = malloc((strlen(string) + 1) * sizeof(char));
     strcpy(return_string, string);
     return return_string;
+}
+// First-come-first-serve algorithm
+void FCFS(int id, char * event_name_arr[1000], int duration_arr[1000], char timetable[][14][50], int progress_arr[1000], char * status_arr[1000]){
+    int count;  // duration of each task
+    int i,x,y;  // for loop counters
+    for (i=0;i<id;i++){
+        count=0;
+        if (event_name_arr[i] != NULL) {
+            count=duration_arr[i];
+            for (x=0;x<14;x++){
+                for (y=0;y<4;y++){
+                    if (strcmp(timetable[y][x],"N/A")==0){    // if the timeslot is available
+                        strcpy(timetable[y][x],event_name_arr[i]);   // assign task for the timeslot
+                        count--;   //  duration of task by reduced by 1 after scheduled for a timeslot
+                        if (count==0){
+                            progress_arr[i]=100;             // update progress record in main scheduler
+                            status_arr[i]="Accepted";          // update status record in main scheduler
+                            break;
+                        }
+                    }
+                }
+                if (count==0){
+                    break;
+                }
+            }
+            if (count>0){    // if the task is not fully scheduled
+                if (count!=duration_arr[i]){
+                  float prog = (float)(duration_arr[i]-count) / (float)duration_arr[i] *100; //calculate percentage of completion
+                  progress_arr[i]=(int)prog;     // update progress record in main scheduler
+                  status_arr[i]="Accepted";       // update status record in main scheduler
+                }
+                else{
+                  progress_arr[i]=0;  // Progress = 0 if task cannot be scheduled
+                  status_arr[i]="Rejected"; // update status to "Rejected" in main scheduler if the task cannot be scheduled
+                }
+            }
+        }
+    }
 }
 
 int main(int argc, const char * argv[]) {
@@ -212,7 +253,7 @@ int main(int argc, const char * argv[]) {
     int fd[2][2]; /* (1 * 2) pipes for communation between 1 pair of module (input module & scheduling module) */
     char command [20] = "";
     char buffer[50];
-    
+
     /* create pipes */
     for (a = 0; a < 2; a ++) {
         if (pipe(fd[a]) < 0) {
@@ -220,25 +261,25 @@ int main(int argc, const char * argv[]) {
             exit(1);
         }
     }
-    
+
     pid = fork(); /* create 1 child (Parent: input module, 1st child: scheduling module) */
-    
+
     if (pid < 0) {
         printf("Fork Failed\n");
         exit(1);
     }
     /* child process */
     else if (pid == 0) {
-        
+
         pid = getpid() - parent_id;
         int read_pipe;
         int write_pipe;
-        
+
         /* 1st child: schduling module */
         if (pid == 1) {
             read_pipe = 1; /* fd[1] is the pipe for scheduling module to read from input module */
             write_pipe = 0; /* fd[0] is the pipe for scheduling module to write to input module */
-            
+
             /* close unused pipe end */
             for (a = 0; a < 2; a ++) {
                 if (a != read_pipe && a != write_pipe) {
@@ -248,7 +289,7 @@ int main(int argc, const char * argv[]) {
                 else if (a == read_pipe) close(fd[a][1]);
                 else close(fd[a][0]);
             }
-            
+
             char * type_arr [1000] = {NULL}; /* addRevision / addActivity / addAssignment / addProject */
             char * status_arr[1000] = {NULL}; /* Accepted / Rejected */
             char * event_name_arr[1000] = {NULL}; /* For addRevision (subject code) / addActivity (name of the event) / addAssignment (subject code with assignment number) / addProject (subject code with project number) */
@@ -258,54 +299,54 @@ int main(int argc, const char * argv[]) {
             int duration_arr[1000]; /* For addRevision / addActivity / addAssignment / addProject */
             int progress_arr[1000]; /* For addAssignment / addProject (% of completion) */
             for (a = 0; a < 1000; a ++) progress_arr[a] = -1; /* -1 means not applicable e.g. invalid input events */
-            
+
             char timetable[4][14][50] = {""}; /* a timetable for events in 19:00 to 23:00 ([4]) from 2019-04-08 to 2019-04-21 ([14]) ("" means that that period is not added) */
-            
+
             char string[50] = "";
             /* wait for response until the write end of input module is closed (stop reading) */
             while((a = read(fd[1][0], buffer, 50)) > 0) {
                 buffer[a] = 0;
-                
+
                 /* read the first 5 characters to determine to type of command */
                 for (b = 0; b < 5; b ++) command[b] = buffer[b];
                 command[b] = 0;
-                
+
                 /* addPeriod */
                 if (strcmp(command, "addPe") == 0) {
-                    
+
                     int start_day, end_day, start_hour, end_hour;
-                    
+
                     /* saving the starting day */
                     for (a = 0; a < 2; a ++) string[a] = buffer[a + 18];
                     string[a] = 0;
                     start_day = atoi(string);
-                    
+
                     /* saving the ending day */
                     for (a = 0; a < 2; a ++) string[a] = buffer[a + 29];
                     string[a] = 0;
                     end_day = atoi(string);
-                    
+
                     /* saving the starting hour */
                     for (a = 0; a < 2; a ++) string[a] = buffer[a + 32];
                     string[a] = 0;
                     start_hour = atoi(string);
-                    
+
                     /* saving the ending hour */
                     for (a = 0; a < 2; a ++) string[a] = buffer[a + 38];
                     string[a] = 0;
                     end_hour = atoi(string);
-                    
+
                     /* add the timeslots or period to the timetable */
                     for (a = start_day - 8; a <= end_day - 8; a ++) {
                         for (b = start_hour - 19; b < end_hour - 19; b++) {
                             strcpy(timetable[b][a], "N/A"); //* N/A means that that period is added but with no assignment */
                         }
                     }
-                    
+
                 }
                 /* addRevision / addActivity / addAssignment / addProject */
                 else if (strcmp(command, "addRe") == 0 || strcmp(command, "addAc") == 0 || strcmp (command, "addAs") == 0 || strcmp (command, "addPr") == 0) {
-                    
+
                     /* saving the type into the type_arr */
                     if (strcmp (command, "addRe") == 0) {
                         type_arr[id] = malloc(strlen("addRevision") * sizeof(char));
@@ -323,48 +364,48 @@ int main(int argc, const char * argv[]) {
                         type_arr[id] = malloc(strlen("addProject") * sizeof(char));
                         strcpy(type_arr[id], "addProject");
                     }
-                    
+
                     /* calculate the length of the string for the duration */
                     temp = 1;
                     b = a - 4;
                     while (buffer[b --] != ' ') temp++;
-                    
+
                     /* saving the duration into the duration_arr */
-                    
+
                     for (b = 0; b < temp; b ++) string[b] = buffer[a - 2 - temp + b];
                     string[b] = 0;
                     duration_arr[id] = atoi(string);
-                    
+
                     /* addRevision / addActivity */
-                    
+
                     if (strcmp (command, "addRe") == 0 || strcmp (command, "addAc") == 0) {
-                        
+
                         /* saving the time into the time_arr */
                         for (b = 0; b < 2; b ++) string[b] = buffer[a - 8 - temp + b];
                         string[b] = 0;
                         time_arr[id] = atoi(string);
-                        
+
                         /* saving the day into the date_arr */
                         for (b = 0; b < 2; b ++) string[b] = buffer[a - 11 - temp + b];
                         string[b] = 0;
                         date_arr[id].day = atoi(string);
-                        
+
                         /* saving the month into the date_arr */
                         for (b = 0; b < 2; b ++) string[b] = buffer[a - 14 - temp + b];
                         string[b] = 0;
                         date_arr[id].month = atoi(string);
-                        
+
                         /* saving the year into the date_arr */
                         for (b = 0; b < 4; b ++) string[b] = buffer[a - 19 - temp + b];
                         string[b] = 0;
                         date_arr[id].year = atoi(string);
-                        
+
                         /* saving the event name into the event_name_arr */
                         for (b = 0; b <= a - 33 - temp; b ++) string[b] = buffer[b + 12];
                         string[b] = 0;
                         event_name_arr[id] = malloc((strlen(string) + 1) * sizeof(char));
                         strcpy(event_name_arr[id], string);
-                        
+
                         /* the input the invalid the the input date and time is out of the "period range" entered */
                         if (strcmp(timetable[time_arr[id] - 19][date_arr[id].day - 8], "N/A") != 0) {
                             printf("ID: %d, The timeslot for input date and time is not available\n", id + 1);
@@ -376,17 +417,17 @@ int main(int argc, const char * argv[]) {
                         for (b = 0; b < 2; b ++) string[b] = buffer [a - 5 - temp + b];
                         string[b] = 0;
                         date_arr[id].day = atoi(string);
-                        
+
                         /* saving the month into the date_arr */
                         for (b = 0; b < 2; b ++) string[b] = buffer[a - 8 - temp + b];
                         string[b] = 0;
                         date_arr[id].month = atoi(string);
-                        
+
                         /* saving the year into the date_arr */
                         for (b = 0; b < 4; b ++) string[b] = buffer[a - 13 - temp + b];
                         string[b] = 0;
                         date_arr[id].year = atoi(string);
-                        
+
                         /* saving the event name into the event_name_arr */
                         if (strcmp (command, "addAs") == 0) for (b = 0; b <= a - 29 - temp; b ++) string[b] = buffer[b + 14];
                         else for (b = 0; b <= a - 26 - temp; b ++) string[b] = buffer[b + 11];
@@ -394,22 +435,23 @@ int main(int argc, const char * argv[]) {
                         event_name_arr[id] = malloc((strlen(string) + 1) * sizeof(char));
                         strcpy(event_name_arr[id], string);
                     }
-                    
+
                     /* the status of the invalid input is set to "Rejected" */
                     if (buffer[a - 1] == '0') {
                         status_arr[id] = malloc(strlen("Rejected") * sizeof(char));
                         strcpy(status_arr[id], "Rejected");
                     }
-                    
+
                     id ++; /* increment the id */
 
                     write(fd[write_pipe][1], "OK", 2); /* for synchronization */
-                    
+
                 }
                 /* runS3 */
                 else if (strcmp(command, "runS3") == 0) {
                     /* CAN BE DELETED!!!!!!!!!! JUST FOR TESTING / DEMONSTRATION ============================== */
                     /* TO BE WRITTEN... */
+                    FCFS(id,event_name_arr,duration_arr,timetable,progress_arr,status_arr);
                     for (a = 0; a < 14; a ++) {
                         for (b = 0; b < 4; b ++) {
                             if (strcmp(timetable[b][a], "") != 0) printf("Day 2019-4-%d Time %d:00 : %s\n", a + 8, b + 19, timetable[b][a]);
@@ -423,17 +465,17 @@ int main(int argc, const char * argv[]) {
                             printf("ID: %d Type: %s Status: %s Progress: %d%% Event_name: %s Date: %d-%d-%d Time: %d:00 Duration: %d\n", a + 1, type_arr[a], status_arr[a], progress_arr[a], event_name_arr[a], date_arr[a].year, date_arr[a].month, date_arr[a].day, time_arr[a], duration_arr[a]);
                         }
                     }
-                    
+
                     write(fd[write_pipe][1], "OK", 2); /* for synchronization */
-                    
+
                     /* CAN BE DELETED!!!!!!!!!! JUST FOR TESTING / DEMONSTRATION ============================== */
                 }
             }
-            
+
             /* close all the pipes end when the input module stops writing (program ends) */
             close(fd[read_pipe][0]);
             close(fd[write_pipe][1]);
-            
+
             /* free all allocated space */
             for (a = 0; a < 1000; a ++) {
                 if (type_arr[id] != NULL) free(type_arr[id]);
@@ -441,12 +483,12 @@ int main(int argc, const char * argv[]) {
                 if (event_name_arr[id] != NULL) free(event_name_arr[id]);
             }
         }
-        
+
         exit(0);
     }
     /* Parent process: Input module */
     else {
-        
+
         /* close unused pipe end */
         /* Parent uses pipes of even id to read */
         /* Parent uses pipes of odd id to write */
@@ -454,19 +496,19 @@ int main(int argc, const char * argv[]) {
             if (a % 2 == 0) close(fd[a][1]);
             else close(fd[a][0]);
         }
-        
+
         char input[50] = ""; /* the string to be sent to the scheduler  (format: [user input] [indicator]) (indicator: '0': invalid / '1': valid) */
         char * return_string;
         char file_name[50];
-        
+
         printf("   ~~WELCOME TO S3~~\n"); /* start the program properly */
-        
+
         while (strcmp(command, "exitS3") != 0) {
-            
+
             /* prompt until the user enter "exitS3" */
             printf("Please enter:\n");
             scanf("%s", command); /* scanning the first string in an input line */
-            
+
             /* call different functions according to the first string in the input line */
             if (strcmp(command, "addPeriod") == 0) {
                 return_string = validatePeriod();
@@ -488,14 +530,14 @@ int main(int argc, const char * argv[]) {
                 scanf("%s", file_name);
                 FILE *fp;
                 fp = fopen(file_name, "r"); /* open a file */
-                
+
                 /* error in opening file */
                 if (fp == NULL)
                 {
                     printf("Error in opening input file\n");
                     exit(1);
                 }
-                
+
                 /* loop until there is no input in the file opened */
                 while (fscanf(fp, "%s", command) == 1) {
                     return_string = validateEvent(&id, command, fp);
@@ -522,13 +564,13 @@ int main(int argc, const char * argv[]) {
             }
         }
         printf("Bye-bye!\n"); /* end the program properly */
-        
+
         /* close all the pipes end when the input module stops writing (program ends) */
         for (a = 0; a < 2; a ++) {
             if (a % 2 == 0) close(fd[a][0]);
             else close(fd[a][1]);
         }
-        
+
         while (wait(NULL) > 0); // wait for all child processes to finish
         exit(0);
    }
