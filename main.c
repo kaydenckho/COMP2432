@@ -302,7 +302,7 @@ int main(int argc, const char * argv[]) {
         pid = getpid() - parent_id;
         
         /* 1st child: schduling module */
-        if (pid == 3) {
+        if (pid == 1) {
             int i_read_pipe = 1; /* fd[1] is the pipe for scheduling module to read from input module */
             int i_write_pipe = 0; /* fd[0] is the pipe for scheduling module to write to input module */
             
@@ -475,11 +475,12 @@ int main(int argc, const char * argv[]) {
                     /* CAN BE DELETED!!!!!!!!!! JUST FOR TESTING / DEMONSTRATION ============================== */
                     /* TO BE WRITTEN... */
                     FCFS(id,type_arr,date_arr,time_arr,event_name_arr,duration_arr,timetable,progress_arr,status_arr);
-                    for (a = 0; a < 14; a ++) {
+					write(fd[oa_write_pipe][1],timetable,4*14*50*sizeof(char));
+                    /*for (a = 0; a < 14; a ++) {
                         for (b = 0; b < 4; b ++) {
                             if (strcmp(timetable[b][a], "") != 0) printf("Day 2019-4-%d Time %d:00 : %s\n", a + 8, b + 19, timetable[b][a]);
                         }
-                    }
+                    }*/
                     for (a = 0; a < id; a ++) {
                         if (status_arr[a] == NULL) {
                             printf("ID: %d Type: %s Status: NULL Progress: %d%% Event_name: %s Date: %d-%d-%d Time: %d:00 Duration: %d\n", a + 1, type_arr[a], progress_arr[a], event_name_arr[a], date_arr[a].year, date_arr[a].month, date_arr[a].day, time_arr[a], duration_arr[a]);
@@ -498,11 +499,11 @@ int main(int argc, const char * argv[]) {
                     }
                      
                     /* reset the timetable for next scheduling */
-                    for (a = 0; a < 14; a ++) {
+                    /*for (a = 0; a < 14; a ++) {
                         for (b = 0; b < 4; b ++) {
                             if (strcmp(timetable[b][a], "") != 0) strcpy(timetable[b][a], "N/A");
                         }
-                    }
+                    }*/
                     write(fd[i_write_pipe][1], "OK", 2); /* for synchronization */
                     
                     /* CAN BE DELETED!!!!!!!!!! JUST FOR TESTING / DEMONSTRATION ============================== */
@@ -524,10 +525,10 @@ int main(int argc, const char * argv[]) {
         /* end of 1st child 1st child (Parent: input module, 1st child: scheduling module) */
         
         /* 2nd child (Parent: input module, 2st child: output&analyzer module) */
-        if (pid==4){
+        if (pid==2){
             int s_read_pipe = 3; /* fd[3] is the pipe for output&analyzer module to read from scheduling module */
             int s_write_pipe = 2; /* fd[2] is the pipe for output&analyzer module to write to scheduling module */
-            
+            FILE * fp1;
             /* close unused pipe ends */
             for (a = 0; a < 4; a ++) {
                 if (a != s_read_pipe && a != s_write_pipe) {
@@ -537,16 +538,25 @@ int main(int argc, const char * argv[]) {
                 else if (a == s_read_pipe) close(fd[a][1]);
                 else close(fd[a][0]);
             }
-            
             /* TO BE WRITTEN... */
             char timetable[4][14][50] = {""}; /* a timetable for events in 19:00 to 23:00 ([4]) from 2019-04-08 to 2019-04-21 ([14]) ("" means that that period is not added) */
             /* wait for response until the write end of scheduling module is closed (stop reading) */
-            while((a = read(fd[s_read_pipe][0],timetable,4*14*50*sizeof(char)+1)) >0) {
+			fp1= fopen("timetable.dat","w+");
+			fprintf(fp1,"Alice Timetable\r\n");
+            while((a = read(fd[s_read_pipe][0],timetable,4*14*50*sizeof(char))) >0) {
                 for (a = 0; a < 14; a ++) {
                     for (b = 0; b < 4; b ++) {
-                        if (strcmp(timetable[b][a], "") != 0) printf("Day 2019-4-%d Time %d:00 : %s\n", a + 8, b + 19, timetable[b][a]);
+                        if (strcmp(timetable[b][a], "") != 0) {
+							if(a==0&&b==0){
+								fprintf(fp1,"2019-04-%d to 2019-04-%d\r\n",a+8,a+21);
+							}
+							fprintf(fp1,"Day 2019-4-%d Time %d:00 : %s\r\n", a + 8, b + 19, timetable[b][a]);
+						}
                     }
                 }
+				if(a>=13){
+					fclose(fp1);
+				}
             }
             /* close all the pipe ends when the scheduling module stops writing (process ends) */
             close(fd[s_read_pipe][0]);
