@@ -280,7 +280,8 @@ int main(int argc, const char * argv[]) {
     int pid;
     int fd[4][2]; /* (2 * 2) pipes for communication between 2 pairs of modules (1.input module & scheduling module 2. scheduling module & output&analyzer module) */
     char command [20] = "";
-    char buffer[50];
+    char buffer[50] = "";
+    char syn[10] = ""; /* only used for synchronization */
     /* create pipes */
     for (a = 0; a < 4; a ++) {
         if (pipe(fd[a]) < 0) {
@@ -332,7 +333,10 @@ int main(int argc, const char * argv[]) {
             char timetable[4][14][50] = {""}; /* a timetable for events in 19:00 to 23:00 ([4]) from 2019-04-08 to 2019-04-21 ([14]) ("" means that that period is not added) */
             
             char string[50] = "";
-            /* wait for response until the write end of input module is closed (stop reading) */
+            
+            write(fd[i_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module is ready to read new data from input module in the beginning of the program) */
+            
+            /* read user inputs until the write end of input module is closed */
             while((a = read(fd[i_read_pipe][0], buffer, 50)) > 0) {
                 buffer[a] = 0;
                 
@@ -369,6 +373,8 @@ int main(int argc, const char * argv[]) {
                             strcpy(timetable[b][a], "N/A"); /* N/A means that that period is added but with no assignment */
                         }
                     }
+                    
+                    write(fd[i_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module is ready to read new data when it finishes processing old data) */
                     
                 }
                 /* addRevision / addActivity / addAssignment / addProject */
@@ -467,20 +473,38 @@ int main(int argc, const char * argv[]) {
                     
                     id ++; /* increment the id */
                     
-                    write(fd[i_write_pipe][1], "OK", 2); /* for synchronization */
+                    write(fd[i_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module is ready to read new data when it finishes processing old data) */
                     
                 }
                 /* runS3 */
                 else if (strcmp(command, "runS3") == 0) {
+                    
+                    /* reading the algorithm */
+                    for (a = 0; a < 3; a ++) string[a] = buffer[a + 6];
+                    string[a] = 0;
+                    
+                    if (strcmp(string, "FCF") == 0) {
+                        FCFS(id,type_arr,date_arr,time_arr,event_name_arr,duration_arr,timetable,progress_arr,status_arr);
+                    }
+                    else if (strcmp(string, "EDF") == 0) {
+                        /* TO BE WRITTEN */
+                    }
+                    
+                    read(fd[oa_read_pipe][0], syn, 10); /* for synchronization (wait until the output & analyzer module is ready to read new data) */
+                    write(fd[oa_write_pipe][1], buffer, strlen(buffer)); /* send the user input as a string to the output & analyzer module */
+                    
+                    read(fd[oa_read_pipe][0], syn, 10); /* for synchronization (wait until the output & analyzer module is ready to read time table) */
+                    write(fd[oa_write_pipe][1], timetable, 4*14*50*sizeof(char)); /* send the time table to the output & analyzer module */
+                    
                     /* CAN BE DELETED!!!!!!!!!! JUST FOR TESTING / DEMONSTRATION ============================== */
-                    /* TO BE WRITTEN... */
-                    FCFS(id,type_arr,date_arr,time_arr,event_name_arr,duration_arr,timetable,progress_arr,status_arr);
-					write(fd[oa_write_pipe][1],timetable,4*14*50*sizeof(char));
-                    /*for (a = 0; a < 14; a ++) {
+                    /*
+                    for (a = 0; a < 14; a ++) {
                         for (b = 0; b < 4; b ++) {
                             if (strcmp(timetable[b][a], "") != 0) printf("Day 2019-4-%d Time %d:00 : %s\n", a + 8, b + 19, timetable[b][a]);
+                            
                         }
-                    }*/
+                    }
+                    
                     for (a = 0; a < id; a ++) {
                         if (status_arr[a] == NULL) {
                             printf("ID: %d Type: %s Status: NULL Progress: %d%% Event_name: %s Date: %d-%d-%d Time: %d:00 Duration: %d\n", a + 1, type_arr[a], progress_arr[a], event_name_arr[a], date_arr[a].year, date_arr[a].month, date_arr[a].day, time_arr[a], duration_arr[a]);
@@ -489,6 +513,8 @@ int main(int argc, const char * argv[]) {
                             printf("ID: %d Type: %s Status: %s Progress: %d%% Event_name: %s Date: %d-%d-%d Time: %d:00 Duration: %d\n", a + 1, type_arr[a], status_arr[a], progress_arr[a], event_name_arr[a], date_arr[a].year, date_arr[a].month, date_arr[a].day, time_arr[a], duration_arr[a]);
                         }
                     }
+                    */
+                    /* CAN BE DELETED!!!!!!!!!! JUST FOR TESTING / DEMONSTRATION ============================== */
                     
                     /* reset the status of valid requests for next scheduling */
                     for (a = 0; a < 1000; a ++) {
@@ -497,16 +523,15 @@ int main(int argc, const char * argv[]) {
                             status_arr[a] = NULL;
                         }
                     }
-                     
+                    
                     /* reset the timetable for next scheduling */
-                    /*for (a = 0; a < 14; a ++) {
+                    for (a = 0; a < 14; a ++) {
                         for (b = 0; b < 4; b ++) {
                             if (strcmp(timetable[b][a], "") != 0) strcpy(timetable[b][a], "N/A");
                         }
-                    }*/
-                    write(fd[i_write_pipe][1], "OK", 2); /* for synchronization */
+                    }
                     
-                    /* CAN BE DELETED!!!!!!!!!! JUST FOR TESTING / DEMONSTRATION ============================== */
+                    write(fd[i_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module is ready to read new data when it finishes processing old data) */
                 }
             }
             
@@ -538,26 +563,31 @@ int main(int argc, const char * argv[]) {
                 else if (a == s_read_pipe) close(fd[a][1]);
                 else close(fd[a][0]);
             }
-            /* TO BE WRITTEN... */
-            char timetable[4][14][50] = {""}; /* a timetable for events in 19:00 to 23:00 ([4]) from 2019-04-08 to 2019-04-21 ([14]) ("" means that that period is not added) */
-            /* wait for response until the write end of scheduling module is closed (stop reading) */
-			fp1= fopen("timetable.dat","w+");
-			fprintf(fp1,"Alice Timetable\r\n");
-            while((a = read(fd[s_read_pipe][0],timetable,4*14*50*sizeof(char))) >0) {
+            
+            char timetable[4][14][50] = {""};
+            
+            write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the output & analyzer module is ready to read new data from scheduling module in the beginning of the program) */
+            
+            /* read user inputs until the write end of scheduling module is closed */
+            while((a = read(fd[s_read_pipe][0], buffer, 50)) > 0 ) {
+                buffer[a] = 0;
+                write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the output & analyzer module is ready to read the time table from scheduling module) */
+                read(fd[s_read_pipe][0], timetable, 4*14*50*sizeof(char)); /* read time table from scheduling module */
+                
+                /* CAN BE DELETED!!!!!!!!!! JUST FOR TESTING / DEMONSTRATION ============================== */
+                /*
                 for (a = 0; a < 14; a ++) {
                     for (b = 0; b < 4; b ++) {
-                        if (strcmp(timetable[b][a], "") != 0) {
-							if(a==0&&b==0){
-								fprintf(fp1,"2019-04-%d to 2019-04-%d\r\n",a+8,a+21);
-							}
-							fprintf(fp1,"Day 2019-4-%d Time %d:00 : %s\r\n", a + 8, b + 19, timetable[b][a]);
-						}
+                        if (strcmp(timetable[b][a], "") != 0) printf("Day 2019-4-%d Time %d:00 : %s\n", a + 8, b + 19, timetable[b][a]);
+                        
                     }
                 }
-				if(a>=13){
-					fclose(fp1);
-				}
+                 */
+                /* CAN BE DELETED!!!!!!!!!! JUST FOR TESTING / DEMONSTRATION ============================== */
+                
+                write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the output & analyzer module is ready to read new data from scheduling module when it finishes processing old data) */
             }
+            
             /* close all the pipe ends when the scheduling module stops writing (process ends) */
             close(fd[s_read_pipe][0]);
             close(fd[s_write_pipe][1]);
@@ -579,9 +609,9 @@ int main(int argc, const char * argv[]) {
             else close(fd[a][0]);
         }
         
-        write(fd[s_write_pipe][1], "AB", 2);
         char input[50] = ""; /* the string to be sent to the scheduler  (format: [user input] [indicator]) (indicator: '0': invalid / '1': valid) */
         char * return_string;
+        char algorithm[50];
         char file_name[50];
         
         printf("   ~~WELCOME TO S3~~\n"); /* start the program properly */
@@ -599,6 +629,7 @@ int main(int argc, const char * argv[]) {
                 free(return_string); /* free the allocated space */
                 /* send the input to scheduler only if the input for addPeriod is valid */
                 if (input[44] == '1') {
+                    read(fd[s_read_pipe][0], syn, 10); /* for synchronization (wait until the scheduling module is ready to read new data) */
                     write(fd[s_write_pipe][1], input, strlen(input));
                 }
             }
@@ -606,8 +637,8 @@ int main(int argc, const char * argv[]) {
                 return_string = validateEvent(&id, command, stdin);
                 strcpy(input, return_string);
                 free(return_string); /* free the allocated space */
+                read(fd[s_read_pipe][0], syn, 10); /* for synchronization (wait until the scheduling module is ready to read new data) */
                 write(fd[s_write_pipe][1], input, strlen(input)); /* send the input to scheduler */
-                read(fd[s_read_pipe][0], buffer, 50); /* for synchronization */
             }
             else if (strcmp(command, "addBatch") == 0) {
                 scanf("%s", file_name);
@@ -625,16 +656,28 @@ int main(int argc, const char * argv[]) {
                 while (fscanf(fp, "%s", command) == 1) {
                     return_string = validateEvent(&id, command, fp);
                     strcpy(input, return_string);
+                    
                     free(return_string); /* free the allocated space */
-                    write(fd[1][1], input, strlen(input)); /* send the input to scheduler */
-                    read(fd[0][0], buffer, 50); /* for synchronization */
+                    read(fd[s_read_pipe][0], syn, 10); /* for synchronization (wait until the scheduling module is ready to read new data) */
+                    write(fd[s_write_pipe][1], input, strlen(input)); /* send the input to scheduler */
                 }
                 fclose(fp); /* close the file */
             }
             else if (strcmp(command, "runS3") == 0) {
                 strcpy(input, command);
-                write(fd[1][1], input, strlen(input)); /* send the input to scheduler */
-                read(fd[0][0], buffer, 50); /* for synchronization */
+                strcat(input, " ");
+                scanf("%s", algorithm); /* scan algorithm */
+                if (strcmp(algorithm, "FCFS") != 0 && strcmp(algorithm, "EDF") != 0) {
+                    printf("Invalid algorithm (Valid: FCFS / EDF)\n");
+                }
+                strcat(input, algorithm); /* concatenate the algorithm to the input */
+                strcat(input, " ");
+                scanf("%s", file_name); /* scan filename */
+                strcat(input, file_name); /* concatenate the filename to the input */
+                if (strcmp(algorithm, "FCFS") == 0 || strcmp(algorithm, "EDF") == 0) {
+                    read(fd[s_read_pipe][0], syn, 10); /* for synchronization (wait until the scheduling module is ready to read new data) */
+                    write(fd[s_write_pipe][1], input, strlen(input)); /* send the input to scheduler */
+                }
             }
             else if (strcmp(command, "exitS3") == 0) {
                 continue;
