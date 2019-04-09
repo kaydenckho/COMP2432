@@ -1135,12 +1135,14 @@ int main(int argc, const char * argv[]) {
 						printf("EDF Scheduler received runS3 from pipe! But nothing need to do.\n");
 					}
 				}
+				/*
 				// Exit program 
 				else if(strcmp(command,"exitS3")==0){
 					exit(0);
 				}
+				*/
 				else{
-					printf("EDF unable to resolve this command.\n");
+					printf("EDF module unable to resolve this command.\n");
 				}
 				return;
 			}
