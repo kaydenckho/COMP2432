@@ -1063,6 +1063,9 @@ int main(int argc, const char * argv[]) {
 						if(temp_ptr!=NULL && strcmp(temp_ptr->timeslot.name,"N/A")!=0){
 							strcpy(timetable2[j][i], temp_ptr->timeslot.name);
 						}
+						else{
+							timetable2[j][i]="";
+						}
 						temp_ptr = temp_ptr->next_slot;
 					}
 				}
@@ -1130,6 +1133,7 @@ int main(int argc, const char * argv[]) {
 				else if(strcmp(command,"runS3")==0){
 					if(strcmp(parameters[0],"EDF")==0){
 						EDF_RunS3();
+						import_EDF_2_timetable();
 					}
 					else{
 						printf("EDF Scheduler received runS3 from pipe! But nothing need to do.\n");
@@ -1302,7 +1306,7 @@ int main(int argc, const char * argv[]) {
                     for (a = 0; a < 3; a ++) string[a] = buffer[a + 6];
                     string[a] = 0;
                     
-                    if (strcmp(string, "FCF") == 0) {
+                    if (strcmp(string, "FCFS") == 0) {
                         FCFS(id,type_arr,date_arr,time_arr,event_name_arr,duration_arr,timetable,progress_arr,status_arr);
                     }
 					/*
