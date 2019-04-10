@@ -521,7 +521,7 @@ int main(int argc, const char * argv[]) {
 			/* Event entry to be scheduled */
 			typedef struct edf_entry {
 				
-				char* name;		/* Name of the activity */
+				char *name;		/* Name of the activity */
 				Date edf_date;		/* Date of deadline or activity */
 				int edf_time;		/* Time start hr:0-24 */
 				int edf_cost;		/* Time cost for the activity in hrs */
@@ -545,7 +545,7 @@ int main(int argc, const char * argv[]) {
 			/* Time slot element for timetable list */
 			typedef struct edf_timeslot {
 				
-				char* name;
+				char *name;
 				Date edf_date;
 				int edf_time;
 				
@@ -679,6 +679,84 @@ int main(int argc, const char * argv[]) {
 				}
 			}
 			
+			void print_entries(){
+			char temp_date_str[20];
+			edf_entry_list* temp_ptr = NULL;
+			if(entry_head != NULL){
+				temp_ptr = entry_head;
+				date2str(temp_ptr->entry.edf_date, temp_date_str);
+				printf("Entry name   Deadline/Date   Time   Cost   Priority\n");
+				printf("==================================================\n");
+				printf("%-13s%-16s%-7d%-7d%-8d\n", temp_ptr->entry.name, temp_date_str, temp_ptr->entry.edf_time,temp_ptr->entry.edf_cost,temp_ptr->entry.type_piority);
+			}
+			else{return;}
+			
+			
+			while(temp_ptr->next_entry!=NULL){
+				temp_ptr = temp_ptr->next_entry;
+				date2str(temp_ptr->entry.edf_date, temp_date_str);
+				printf("%-13s%-16s%-7d%-7d%-8d\n", temp_ptr->entry.name, temp_date_str, temp_ptr->entry.edf_time,temp_ptr->entry.edf_cost,temp_ptr->entry.type_piority);
+			}
+			
+			/*
+			if(temp_ptr->next_entry!=NULL){
+				temp_ptr = temp_ptr->next_entry;
+				date2str(temp_ptr->entry.edf_date, temp_date_str);
+				printf("%-13s%-16s%-7d%-7d%-8d\n", temp_ptr->entry.name, temp_date_str, temp_ptr->entry.edf_time,temp_ptr->entry.edf_cost,temp_ptr->entry.type_piority);
+				printf("%x\n", entry_head);
+				printf("%x\n", temp_ptr);
+			}
+			if(temp_ptr->next_entry!=NULL){
+				printf("%x\n", temp_ptr->next_entry);
+			}
+			*/
+			
+			/*
+			printf("Head:\n");
+			temp_ptr = entry_head;
+			date2str(temp_ptr->entry.edf_date, temp_date_str);
+			printf("%-13s%-16s%-7d%-7d%-8d\n", temp_ptr->entry.name, temp_date_str, temp_ptr->entry.edf_time,temp_ptr->entry.edf_cost,temp_ptr->entry.type_piority);
+			printf("Tail:\n");
+			temp_ptr = entry_tail;
+			date2str(temp_ptr->entry.edf_date, temp_date_str);
+			printf("%-13s%-16s%-7d%-7d%-8d\n", temp_ptr->entry.name, temp_date_str, temp_ptr->entry.edf_time,temp_ptr->entry.edf_cost,temp_ptr->entry.type_piority);
+			*/
+			printf("\n");
+		}
+		
+		void print_slots(){
+			char temp_date_str[20];
+			edf_timetable_list* temp_ptr = NULL;
+			if(timetable_head != NULL){
+				temp_ptr = timetable_head;
+				date2str(temp_ptr->timeslot.edf_date, temp_date_str);
+				printf("EDF Schedule\n");
+				printf("==================================================\n");
+				printf("%-16s%-2d:00    %-17s\n", temp_date_str, temp_ptr->timeslot.edf_time,temp_ptr->timeslot.name);
+			}
+			else{return;}
+			
+			
+			while(temp_ptr->next_slot!=NULL){
+				temp_ptr = temp_ptr->next_slot;
+				date2str(temp_ptr->timeslot.edf_date, temp_date_str);
+				printf("%-16s%-2d:00    %-17s\n", temp_date_str, temp_ptr->timeslot.edf_time,temp_ptr->timeslot.name);
+			}
+			
+			/*
+			printf("Head:\n");
+			temp_ptr = timetable_head;
+			date2str(temp_ptr->timeslot.edf_date, temp_date_str);
+			printf("%-16s%-2d:00    %-17s\n", temp_date_str, temp_ptr->timeslot.edf_time,temp_ptr->timeslot.name);
+			printf("Tail:\n");
+			temp_ptr = timetable_tail;
+			date2str(temp_ptr->timeslot.edf_date, temp_date_str);
+			printf("%-16s%-2d:00    %-17s\n", temp_date_str, temp_ptr->timeslot.edf_time,temp_ptr->timeslot.name);
+			*/
+			
+			printf("\n");
+		}
+			
 			int add_time_slot(char* insrt_name, Date insrt_date, int insrt_time){
 				
 				//printf("running add time slot.\n");
@@ -747,7 +825,9 @@ int main(int argc, const char * argv[]) {
 			}
 			
 			void addProject(char* parameters[]){
-				char *name = parameters[0];
+				char *name; 
+				name = malloc(sizeof(char)*20);
+				strcpy(name,parameters[0]);
 				Date temp_date = str2date(parameters[1]);
 				int temp_time = 24;
 				int temp_cost = atoi(parameters[2]);
@@ -755,7 +835,9 @@ int main(int argc, const char * argv[]) {
 				insert_entry(name, temp_date, temp_time, temp_cost, type);
 			}
 			void addAssignment(char* parameters[]){
-				char *name = parameters[0];
+				char *name; 
+				name = malloc(sizeof(char)*20);
+				strcpy(name,parameters[0]);
 				Date temp_date = str2date(parameters[1]);
 				int temp_time = 24;
 				int temp_cost = atoi(parameters[2]);
@@ -763,7 +845,9 @@ int main(int argc, const char * argv[]) {
 				insert_entry(name, temp_date, temp_time, temp_cost, type);
 			}
 			void addRevision(char* parameters[]){
-				char *name = parameters[0];
+				char *name; 
+				name = malloc(sizeof(char)*20);
+				strcpy(name,parameters[0]);
 				Date temp_date = str2date(parameters[1]);
 				int temp_time = str2hr(parameters[2]);
 				int temp_cost = atoi(parameters[3]);
@@ -771,7 +855,9 @@ int main(int argc, const char * argv[]) {
 				insert_entry(name, temp_date, temp_time, temp_cost, type);
 			}
 			void addActivity(char* parameters[]){
-				char *name = parameters[0];
+				char *name; 
+				name = malloc(sizeof(char)*20);
+				strcpy(name,parameters[0]);
 				Date temp_date = str2date(parameters[1]);
 				int temp_time = str2hr(parameters[2]);
 				int temp_cost = atoi(parameters[3]);
@@ -1047,7 +1133,16 @@ int main(int argc, const char * argv[]) {
 			}
 			
 			
-			char timetable2[4][14][50] = {""};
+			void print_timetable_edf(){
+				int i, j = 0;				
+				for(i=0; i < 14; i++){
+					for(j=0; j <4; j++){
+						printf("Timetable print : Day=%d  Slot=%d is %s\n",i,j,timetable[j][i]);
+					}
+				}
+			}
+			
+			//char timetable2[4][14][50] = {""};
 			//!!!Only for 14 days 4hrs timetables!!!
 			void import_EDF_2_timetable(){
 				edf_timetable_list* temp_ptr;
@@ -1055,16 +1150,17 @@ int main(int argc, const char * argv[]) {
 					temp_ptr = timetable_head;
 				}
 				else{
-					printf("EDF period haven't added.");
+					printf("EDF period haven't added.\n");
 				}
 				int i, j = 0;				
 				for(i=0; i < 14; i++){
 					for(j=0; j <4; j++){
 						if(temp_ptr!=NULL && strcmp(temp_ptr->timeslot.name,"N/A")!=0){
-							strcpy(timetable2[j][i], temp_ptr->timeslot.name);
+							strncpy(timetable[j][i], temp_ptr->timeslot.name, sizeof(timetable[j][i])-1);
+							//printf("i=%d j=%d imported name : %s\n", i,j,timetable[j][i]);
 						}
 						else{
-							timetable2[j][i]="";
+							strcpy(timetable[j][i],"N/A");
 						}
 						temp_ptr = temp_ptr->next_slot;
 					}
@@ -1095,11 +1191,13 @@ int main(int argc, const char * argv[]) {
 				i--;
 				//printf("i is now %d.\n", i);
 				
-				
-				if(atoi(parameters[i]) == 0){
-					//printf("Scheduler received invalid message from pipe! Nothing need to do.\n");
-					return;
+				if(strcmp(command,"runS3")!=0){
+					if(atoi(parameters[i]) == 0){
+						printf("Scheduler received invalid message from pipe! Nothing need to do.\n");
+						return;
+					}
 				}
+				
 				
 				//printf("The input is valid\n");
 				//Add period
@@ -1126,14 +1224,16 @@ int main(int argc, const char * argv[]) {
 				//Add activity
 				else if(strcmp(command,"addActivity")==0){
 					addActivity(parameters);
-				}
-				
-				
+				}			
 				// Start scheduling
 				else if(strcmp(command,"runS3")==0){
 					if(strcmp(parameters[0],"EDF")==0){
+						printf("EDF command handler: Running S3 EDF.\n");
+						print_entries();
 						EDF_RunS3();
+						print_slots();
 						import_EDF_2_timetable();
+						//print_timetable_edf();
 					}
 					else{
 						printf("EDF Scheduler received runS3 from pipe! But nothing need to do.\n");
@@ -1160,8 +1260,13 @@ int main(int argc, const char * argv[]) {
 				
 				char edf_input[50];
 				strcpy(edf_input, buffer);
-				//printf("EDF received command: %s\n", edf_input);
-                command_handler(edf_input);
+				printf("EDF received command: %s\n", edf_input);
+				
+				
+				if(strcmp(command, "runS3") != 0){
+					command_handler(edf_input);
+				}
+                
 				
                 /* read the first 5 characters to determine to type of command */
                 for (b = 0; b < 5; b ++) command[b] = buffer[b];
@@ -1309,12 +1414,10 @@ int main(int argc, const char * argv[]) {
                     if (strcmp(string, "FCFS") == 0) {
                         FCFS(id,type_arr,date_arr,time_arr,event_name_arr,duration_arr,timetable,progress_arr,status_arr);
                     }
-					/*
                     else if (strcmp(string, "EDF") == 0) {
-                         TO BE WRITTEN 
-                    }		EDF has its own handler
-					*/
-                    
+                         command_handler(edf_input);
+                    }
+					
                     read(fd[oa_read_pipe][0], syn, 10); /* for synchronization (wait until the output & analyzer module is ready to read new data) */
                     write(fd[oa_write_pipe][1], buffer, strlen(buffer)); /* send the user input as a string to the output & analyzer module */
                     
@@ -1376,9 +1479,20 @@ int main(int argc, const char * argv[]) {
         
         /* 2nd child (Parent: input module, 2st child: output&analyzer module) */
         if (pid==2){
+            char * filename="";
+			char * filename2="";
+			char a_name[5]="";
+			int NA=0; /*counting time slots used (how many N/A)*/
+			int acc=0;/*number of accepted*/
+			int rej=0;/*number of rejected*/
+			int X=0; /*counting time slots used (how many unused period)*/
+			int c=0; /*counting status*/
+            int id=0;
+            int count=6;
             int s_read_pipe = 3; /* fd[3] is the pipe for output&analyzer module to read from scheduling module */
             int s_write_pipe = 2; /* fd[2] is the pipe for output&analyzer module to write to scheduling module */
             FILE * fp1;
+            FILE * fp2;
             /* close unused pipe ends */
             for (a = 0; a < 4; a ++) {
                 if (a != s_read_pipe && a != s_write_pipe) {
@@ -1390,27 +1504,116 @@ int main(int argc, const char * argv[]) {
             }
             
             char timetable[4][14][50] = {""};
+            char request[1000][50] = {""};
+            char status_arr[1000][10] = {""};
             
             write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the output & analyzer module is ready to read new data from scheduling module in the beginning of the program) */
             
             /* read user inputs until the write end of scheduling module is closed */
-            while((a = read(fd[s_read_pipe][0], buffer, 50)) > 0 ) {
-                buffer[a] = 0;
-                write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the output & analyzer module is ready to read the time table from scheduling module) */
-                read(fd[s_read_pipe][0], timetable, 4*14*50*sizeof(char)); /* read time table from scheduling module */
+            while((a = read(fd[s_read_pipe][0], buffer, 50)) > 0 ){
+                write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module can now write the time to the pipe as the output & analyzer module finishes reading old data in the pipe) */
+                read(fd[s_read_pipe][0], &id, sizeof(id));
+                write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module can now write the time to the pipe as the output & analyzer module finishes reading old data in the pipe) */
+                read(fd[s_read_pipe][0], request, 1000*50*sizeof(char));
+                write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module can now write the time to the pipe as the output & analyzer module finishes reading old data in the pipe) */
+                read(fd[s_read_pipe][0], status_arr, 1000*10*sizeof(char));
+                write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module can now write the time to the pipe as the output & analyzer module finishes reading old data in the pipe) */
+                read(fd[s_read_pipe][0],timetable,4*14*50*sizeof(char));
+                write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module can now write the time to the pipe as the output & analyzer module finishes reading old data in the pipe) */
                 
-                /* CAN BE DELETED!!!!!!!!!! JUST FOR TESTING / DEMONSTRATION ============================== */
-                /*
-                for (a = 0; a < 14; a ++) {
-                    for (b = 0; b < 4; b ++) {
-                        if (strcmp(timetable[b][a], "") != 0) printf("Day 2019-4-%d Time %d:00 : %s\n", a + 8, b + 19, timetable[b][a]);
-                        
-                    }
+				void print_timetable_edf(){
+					int i, j = 0;				
+					for(i=0; i < 14; i++){
+						for(j=0; j <4; j++){
+							printf("Output module print : Day=%d  Slot=%d is %s\n",i,j,timetable[j][i]);
+						}
+					}
+				}
+				
+				print_timetable_edf();
+				
+				while(buffer[count]!=' '){
+					a_name[count-6]=buffer[count];
+                    count++;
                 }
-                 */
-                /* CAN BE DELETED!!!!!!!!!! JUST FOR TESTING / DEMONSTRATION ============================== */
+				if(strcmp(a_name,"FCFS")==0){
+					filename="S3_report_FCFS.dat";
+					filename2="S3_FCFS.log";
+				}
+				else{
+					filename="S3_report_EDF.dat";
+					filename2="S3_EDF.log";
+				}
+				fp1= fopen(filename,"w+");
+				
+                fprintf(fp1,"Alice Timetable\r\n");
+                fprintf(fp1,"2019-04-08 to 2019-04-21\r\n");
+                fprintf(fp1,"Algorithm: ");
                 
-                write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the output & analyzer module is ready to read new data from scheduling module when it finishes processing old data) */
+				
+				fprintf(fp1,"%s",a_name);
+                fprintf(fp1,"\r\n\r\n");
+                fprintf(fp1,"%-20s","Date");
+                fprintf(fp1,"%-20s","19:00");
+                fprintf(fp1,"%-20s","20:00");
+                fprintf(fp1,"%-20s","21:00");
+                fprintf(fp1,"%-20s\r\n","22:00");
+                for (a = 0; a < 14; a ++) {
+                    for (b = 0; b < 5; b ++) {
+                        if(b==0){
+                            if(a<2){
+                                fprintf(fp1, "%s%-12d", "2019-4-0",a + 8);
+                            }
+                            else{
+                                fprintf(fp1, "%s%-13d", "2019-4-",a + 8);
+                            }
+                        }
+                        else{
+                            if (strcmp(timetable[b-1][a], "") != 0) {
+                                fprintf(fp1, "%-20s", timetable[b-1][a]);
+                            }
+                            else{
+                                fprintf(fp1,"%-20s","X");
+                            }
+                        }
+                    }
+                    fprintf(fp1,"\r\n");
+                    
+                }
+                fprintf(fp1,"\r\n***Summary Reprot***\r\n\r\n");
+                fprintf(fp1,"Algorithm used: ");
+                fprintf(fp1,"%s",a_name);
+                fprintf(fp1,"\r\nThere are %d requests.\r\n",id);
+				
+                while(c<id){
+                    if(strcmp(status_arr[c],"Accepted")==0){acc++;}
+                    else if(strcmp(status_arr[c],"Rejected")==0){rej++;}
+                    c++;
+                }
+                fprintf(fp1,"Number of request accepted: %d\r\n",acc);
+                fprintf(fp1,"Number of request rejected: %d\r\n\r\n",rej);
+				
+				for (a = 0; a < 14; a ++) {
+                    for (b = 0; b < 4; b ++) {
+						if(strcmp(timetable[b][a],"N/A")==0){NA++;}
+						else if(strcmp(timetable[b][a],"")==0){X++;}
+					}
+				}
+				fprintf(fp1,"Number of time slots used: %d (%d%)",4*14-X-NA,((4*14-X-NA)*100/(4*14-X)*100)/100);
+                fclose(fp1);
+				fp2= fopen(filename2,"w+");
+				fprintf(fp2,"***Log File - %s***\r\n",a_name);
+				fprintf(fp2,"%-8s","ID");
+				fprintf(fp2,"%-40s","Event");
+				fprintf(fp2,"%-s\r\n","Accepted/Rejected");
+				fprintf(fp2,"-------------------------------------------------------------\r\n");
+				for(count=0;count<id;count++){
+					fprintf(fp2,"000%-5d",count+1);
+					fprintf(fp2,"%-42s",request[count]);
+					fprintf(fp2,"%-s\r\n",status_arr[count]);
+				}
+				fclose(fp2);
+				
             }
             
             /* close all the pipe ends when the scheduling module stops writing (process ends) */
