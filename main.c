@@ -496,6 +496,9 @@ int main(int argc, const char * argv[]) {
                     
                     read(fd[oa_read_pipe][0], syn, 10); /* for synchronization (wait until the output & analyzer module finishes reading old data in the pipe) */
                     write(fd[oa_write_pipe][1], status_arr, 1000*10*sizeof(char));
+					
+					read(fd[oa_read_pipe][0], syn, 10); /* for synchronization (wait until the output & analyzer module finishes reading old data in the pipe) */
+                    write(fd[oa_write_pipe][1], progress_arr, 1000*sizeof(int));
                     
                     read(fd[oa_read_pipe][0], syn, 10); /* for synchronization (wait until the output & analyzer module finishes reading old data in the pipe) */
                     write(fd[oa_write_pipe][1], timetable, 4*14*50*sizeof(char)); /* send the time table to the output & analyzer module */
@@ -546,6 +549,7 @@ int main(int argc, const char * argv[]) {
             int s_write_pipe = 2; /* fd[2] is the pipe for output&analyzer module to write to scheduling module */
             FILE * fp1;
             FILE * fp2;
+			int progress=0;
             /* close unused pipe ends */
             for (a = 0; a < 4; a ++) {
                 if (a != s_read_pipe && a != s_write_pipe) {
@@ -559,6 +563,7 @@ int main(int argc, const char * argv[]) {
             char timetable[4][14][50] = {""};
             char request[1000][50] = {""};
             char status_arr[1000][10] = {""};
+			int progress_arr[1000];
             
             write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the output & analyzer module is ready to read new data from scheduling module in the beginning of the program) */
             
@@ -571,7 +576,9 @@ int main(int argc, const char * argv[]) {
                 write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module can now write the time to the pipe as the output & analyzer module finishes reading old data in the pipe) */
                 read(fd[s_read_pipe][0], status_arr, 1000*10*sizeof(char));
                 write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module can now write the time to the pipe as the output & analyzer module finishes reading old data in the pipe) */
-                read(fd[s_read_pipe][0],timetable,4*14*50*sizeof(char));
+                read(fd[s_read_pipe][0], progress_arr, 1000*sizeof(int));
+                write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module can now write the time to the pipe as the output & analyzer module finishes reading old data in the pipe) */
+				read(fd[s_read_pipe][0],timetable,4*14*50*sizeof(char));
                 write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module can now write the time to the pipe as the output & analyzer module finishes reading old data in the pipe) */
                 while(buffer[count]!=' '){
 					a_name[count-6]=buffer[count];
@@ -640,7 +647,16 @@ int main(int argc, const char * argv[]) {
 						else if(strcmp(timetable[b][a],"")==0){X++;}
 					}
 				}
-				fprintf(fp1,"Number of time slots used: %d (%d%)",4*14-X-NA,((4*14-X-NA)*100/(4*14-X)*100)/100);
+				for(count=0;count<id;count++){
+					fprintf(fp1,"%d",progress_arr[count]);
+					progress+=progress_arr[count];
+				}
+				if(progress/acc!=100&&progress/acc!=0){
+					fprintf(fp1,"Number of time slots used: %d (%d",4*14-X-NA,progress/acc);
+					fprintf(fp1,"%)");
+				}
+				else{fprintf(fp1,"Number of time slots used: %d",4*14-X-NA);}
+				
                 fclose(fp1);
 				fp2= fopen(filename2,"w+");
 				fprintf(fp2,"***Log File - %s***\r\n",a_name);
