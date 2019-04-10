@@ -19,7 +19,7 @@ typedef struct date * Date_Ptr;
 char * validatePeriod(void);
 char * validateEvent(int * id, char * type, FILE * fp);
 /* First-come-first-serve algorithm */
-void FCFS(int id, char * type_arr[1000], Date date_arr[1000], int time_arr[1000], char * event_name_arr[1000], int duration_arr[1000], char timetable[][14][50], int progress_arr[1000], char * status_arr[1000]);
+void FCFS(int id, char * type_arr[1000], Date date_arr[1000], int time_arr[1000], char * event_name_arr[1000], int duration_arr[1000], char timetable[][14][50], int progress_arr[1000], char status_arr[][10]);
 
 /* input validation for addPeriod */
 char * validatePeriod(void) {
@@ -209,15 +209,14 @@ char * validateEvent(int * id, char * type, FILE * fp) {
 }
 
 /* First-come-first-serve algorithm */
-void FCFS(int id, char * type_arr[1000] ,Date date_arr[1000], int time_arr[1000], char * event_name_arr[1000], int duration_arr[1000], char timetable[][14][50], int progress_arr[1000], char * status_arr[1000]){
+void FCFS(int id, char * type_arr[1000] ,Date date_arr[1000], int time_arr[1000], char * event_name_arr[1000], int duration_arr[1000], char timetable[][14][50], int progress_arr[1000], char status_arr[][10]){
     int count=0;  /* duration of each task */
     int i,x,y;  /* for loop counters */
     for (i=0;i<id;i++){
-        if (status_arr[i] == NULL) {
+        if (strcmp(status_arr[i], "") == 0) {
             /* Reject the request if the date and time is out of the period range */
             if (strcmp(type_arr[i],"addRevision")==0 || strcmp(type_arr[i],"addActivity")==0){
                 if (strcmp(timetable[time_arr[i] - 19][date_arr[i].day - 8], "N/A") !=0) {
-                    status_arr[i] = malloc((strlen("Rejected") + 1) * sizeof(char));
                     strcpy(status_arr[i],"Rejected");
                     progress_arr[i] = 0;
                 }
@@ -232,7 +231,6 @@ void FCFS(int id, char * type_arr[1000] ,Date date_arr[1000], int time_arr[1000]
                                 count--;   /*  duration of task by reduced by 1 after scheduled for a timeslot */
                                 if (count==0){
                                     progress_arr[i]=100;             /* update progress record in main scheduler */
-                                    status_arr[i] = malloc((strlen("Accepted") + 1) * sizeof(char));
                                     strcpy(status_arr[i],"Accepted");          /* update status record in main scheduler */
                                 }
                             }
@@ -241,7 +239,6 @@ void FCFS(int id, char * type_arr[1000] ,Date date_arr[1000], int time_arr[1000]
                                 count--;   /*  duration of task by reduced by 1 after scheduled for a timeslot */
                                 if (count==0){
                                     progress_arr[i]=100;             /* update progress record in main scheduler */
-                                    status_arr[i] = malloc((strlen("Accepted") + 1) * sizeof(char));
                                     strcpy(status_arr[i],"Accepted");          /* update status record in main scheduler */
                                 }
                             }
@@ -253,18 +250,15 @@ void FCFS(int id, char * type_arr[1000] ,Date date_arr[1000], int time_arr[1000]
                         if (strcmp(type_arr[i],"addRevision")!=0 && strcmp(type_arr[i],"addActivity")!=0){
                             float prog = (float)(duration_arr[i]-count) / (float)duration_arr[i] *100; /*calculate percentage of completion */
                             progress_arr[i]=(int)prog;     /* update progress record in main scheduler */
-                            status_arr[i] = malloc((strlen("Accepted") + 1) * sizeof(char));
                             strcpy(status_arr[i],"Accepted");       /* update status record in main scheduler */
                         }
                         else {
                             progress_arr[i]=0;  /* Progress = 0 if task cannot be scheduled */
-                            status_arr[i] = malloc((strlen("Rejected") + 1) * sizeof(char));
                             strcpy(status_arr[i],"Rejected"); /* update status to "Rejected" in main scheduler if the task cannot be scheduled */
                         }
                     }
                     else {
                         progress_arr[i]=0;  /* Progress = 0 if task cannot be scheduled */
-                        status_arr[i] = malloc((strlen("Rejected") + 1) * sizeof(char));
                         strcpy(status_arr[i],"Rejected"); /* update status to "Rejected" in main scheduler if the task cannot be scheduled */
                     }
                 }
@@ -322,7 +316,7 @@ int main(int argc, const char * argv[]) {
             
             int start_day, end_day, start_hour, end_hour;
             char * type_arr [1000] = {NULL}; /* addRevision / addActivity / addAssignment / addProject */
-            char * status_arr[1000] = {NULL}; /* Accepted / Rejected */
+            char status_arr[1000][10] = {""}; /* Accepted / Rejected */
             char * event_name_arr[1000] = {NULL}; /* For addRevision (subject code) / addActivity (name of the event) / addAssignment (subject code with assignment number) / addProject (subject code with project number) */
             Date date_arr[1000]; /* For addRevision (date) / addActivity (date) / addAssignment (due date) / addProject (due date) */
             int time_arr[1000]; /* For addRevision (time) or addActivity (time) */
@@ -333,6 +327,8 @@ int main(int argc, const char * argv[]) {
             char timetable[4][14][50] = {""}; /* a timetable for events in 19:00 to 23:00 ([4]) from 2019-04-08 to 2019-04-21 ([14]) ("" means that that period is not added) */
             
             char string[50] = "";
+            
+            char request[1000][50] = {""}; /* request list to be sent to output & analyzer module when "runS3" */
             
             write(fd[i_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module is ready to read new data from input module in the beginning of the program) */
             
@@ -465,10 +461,12 @@ int main(int argc, const char * argv[]) {
                     
                     /* the status of the invalid input is set to "Invalid" */
                     if (buffer[a - 1] == '0') {
-                        status_arr[id] = malloc(strlen("Invalid") * sizeof(char));
                         strcpy(status_arr[id], "Invalid");
                         progress_arr[id] = 0;
                     }
+                    
+                    buffer[a - 2] = 0;
+                    strcpy(request[id], buffer); /* copy the event to the request list */
                     
                     id ++; /* increment the id */
                     
@@ -490,34 +488,22 @@ int main(int argc, const char * argv[]) {
                     read(fd[oa_read_pipe][0], syn, 10); /* for synchronization (wait until the output & analyzer module finishes reading old data in the pipe) */
                     write(fd[oa_write_pipe][1], buffer, strlen(buffer)); /* send the user input as a string to the output & analyzer module */
                     
-					read(fd[oa_read_pipe][0], syn, 10);
-					write(fd[oa_write_pipe][1], &id, sizeof(id));
-					
-					read(fd[oa_read_pipe][0], syn, 10);
-					write(fd[oa_write_pipe][1], status_arr, 1000*sizeof(char));
-					
+                    read(fd[oa_read_pipe][0], syn, 10); /* for synchronization (wait until the output & analyzer module finishes reading old data in the pipe) */
+                    write(fd[oa_write_pipe][1], &id, sizeof(id));
+                    
+                    read(fd[oa_read_pipe][0], syn, 10); /* for synchronization (wait until the output & analyzer module finishes reading old data in the pipe) */
+                    write(fd[oa_write_pipe][1], request, 1000*50*sizeof(char));
+                    
+                    read(fd[oa_read_pipe][0], syn, 10); /* for synchronization (wait until the output & analyzer module finishes reading old data in the pipe) */
+                    write(fd[oa_write_pipe][1], status_arr, 1000*10*sizeof(char));
+                    
                     read(fd[oa_read_pipe][0], syn, 10); /* for synchronization (wait until the output & analyzer module finishes reading old data in the pipe) */
                     write(fd[oa_write_pipe][1], timetable, 4*14*50*sizeof(char)); /* send the time table to the output & analyzer module */
                     
-                    /* CAN BE DELETED!!!!!!!!!! JUST FOR TESTING / DEMONSTRATION ============================== */
-                    
-                    
-                    for (a = 0; a < id; a ++) {
-                        if (status_arr[a] == NULL) {
-                            printf("ID: %d Type: %s Status: NULL Progress: %d%% Event_name: %s Date: %d-%d-%d Time: %d:00 Duration: %d\n", a + 1, type_arr[a], progress_arr[a], event_name_arr[a], date_arr[a].year, date_arr[a].month, date_arr[a].day, time_arr[a], duration_arr[a]);
-                        }
-                        else {
-                            printf("ID: %d Type: %s Status: %s Progress: %d%% Event_name: %s Date: %d-%d-%d Time: %d:00 Duration: %d\n", a + 1, type_arr[a], status_arr[a], progress_arr[a], event_name_arr[a], date_arr[a].year, date_arr[a].month, date_arr[a].day, time_arr[a], duration_arr[a]);
-                        }
-                    }
-                    
-                    /* CAN BE DELETED!!!!!!!!!! JUST FOR TESTING / DEMONSTRATION ============================== */
-                    
                     /* reset the status of valid requests for next scheduling */
                     for (a = 0; a < 1000; a ++) {
-                        if (status_arr[a] != NULL && strcmp(status_arr[a],"Invalid") != 0) {
-                            free(status_arr[a]);
-                            status_arr[a] = NULL;
+                        if (strcmp(status_arr[a],"Invalid") != 0) {
+                            strcpy(status_arr[a],"");
                         }
                     }
                     
@@ -546,16 +532,20 @@ int main(int argc, const char * argv[]) {
         
         /* 2nd child (Parent: input module, 2st child: output&analyzer module) */
         if (pid==2){
-			int x=0; /*counting status*/
+			char * filename="";
+			char * filename2="";
+			char a_name[5]="";
+			int NA=0; /*counting time slots used (how many N/A)*/
 			int acc=0;/*number of accepted*/
 			int rej=0;/*number of rejected*/
-			char * status_arr[1000] = {NULL};
-			int id=0;
-			int count=6;
+			int X=0; /*counting time slots used (how many unused period)*/
+			int c=0; /*counting status*/
+            int id=0;
+            int count=6;
             int s_read_pipe = 3; /* fd[3] is the pipe for output&analyzer module to read from scheduling module */
             int s_write_pipe = 2; /* fd[2] is the pipe for output&analyzer module to write to scheduling module */
             FILE * fp1;
-			FILE * fp2;
+            FILE * fp2;
             /* close unused pipe ends */
             for (a = 0; a < 4; a ++) {
                 if (a != s_read_pipe && a != s_write_pipe) {
@@ -567,74 +557,104 @@ int main(int argc, const char * argv[]) {
             }
             
             char timetable[4][14][50] = {""};
+            char request[1000][50] = {""};
+            char status_arr[1000][10] = {""};
             
             write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the output & analyzer module is ready to read new data from scheduling module in the beginning of the program) */
             
             /* read user inputs until the write end of scheduling module is closed */
-            while((a = read(fd[s_read_pipe][0], buffer, 50)) > 0 ) {
+            while((a = read(fd[s_read_pipe][0], buffer, 50)) > 0 ){
                 write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module can now write the time to the pipe as the output & analyzer module finishes reading old data in the pipe) */
                 read(fd[s_read_pipe][0], &id, sizeof(id));
-				write(fd[s_write_pipe][1], "OK", 2);
-				read(fd[s_read_pipe][0], &status_arr, 1000*sizeof(char));
-				write(fd[s_write_pipe][1], "OK", 2);
-				fp1= fopen("timetable.dat","w+");
-				fprintf(fp1,"Alice Timetable\r\n");
-				fprintf(fp1,"2019-04-08 to 2019-04-21\r\n");
-				fprintf(fp1,"Algorithm: ");
-				while(buffer[count]!=' '){
-					fprintf(fp1,"%c",buffer[count]);
-					count++;
+                write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module can now write the time to the pipe as the output & analyzer module finishes reading old data in the pipe) */
+                read(fd[s_read_pipe][0], request, 1000*50*sizeof(char));
+                write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module can now write the time to the pipe as the output & analyzer module finishes reading old data in the pipe) */
+                read(fd[s_read_pipe][0], status_arr, 1000*10*sizeof(char));
+                write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module can now write the time to the pipe as the output & analyzer module finishes reading old data in the pipe) */
+                read(fd[s_read_pipe][0],timetable,4*14*50*sizeof(char));
+                write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module can now write the time to the pipe as the output & analyzer module finishes reading old data in the pipe) */
+                while(buffer[count]!=' '){
+					a_name[count-6]=buffer[count];
+                    count++;
+                }
+				if(strcmp(a_name,"FCFS")==0){
+					filename="S3_report_FCFS.dat";
+					filename2="S3_FCFS.log";
 				}
-				count=6;
-				fprintf(fp1,"\r\n\r\n");
-				read(fd[s_read_pipe][0],timetable,4*14*50*sizeof(char));
-				fprintf(fp1,"%-20s","Date");
-				fprintf(fp1,"%-20s","19:00");
-				fprintf(fp1,"%-20s","20:00");
-				fprintf(fp1,"%-20s","21:00");
-				fprintf(fp1,"%-20s\r\n","22:00");
+				else{
+					filename="S3_report_EDF.dat";
+					filename2="S3_EDF.log";
+				}
+				fp1= fopen(filename,"w+");
+				
+                fprintf(fp1,"Alice Timetable\r\n");
+                fprintf(fp1,"2019-04-08 to 2019-04-21\r\n");
+                fprintf(fp1,"Algorithm: ");
+                
+				
+				fprintf(fp1,"%s",a_name);
+                fprintf(fp1,"\r\n\r\n");
+                fprintf(fp1,"%-20s","Date");
+                fprintf(fp1,"%-20s","19:00");
+                fprintf(fp1,"%-20s","20:00");
+                fprintf(fp1,"%-20s","21:00");
+                fprintf(fp1,"%-20s\r\n","22:00");
+                for (a = 0; a < 14; a ++) {
+                    for (b = 0; b < 5; b ++) {
+                        if(b==0){
+                            if(a<2){
+                                fprintf(fp1, "%s%-12d", "2019-4-0",a + 8);
+                            }
+                            else{
+                                fprintf(fp1, "%s%-13d", "2019-4-",a + 8);
+                            }
+                        }
+                        else{
+                            if (strcmp(timetable[b-1][a], "") != 0) {
+                                fprintf(fp1, "%-20s", timetable[b-1][a]);
+                            }
+                            else{
+                                fprintf(fp1,"%-20s","X");
+                            }
+                        }
+                    }
+                    fprintf(fp1,"\r\n");
+                    
+                }
+                fprintf(fp1,"\r\n***Summary Reprot***\r\n\r\n");
+                fprintf(fp1,"Algorithm used: ");
+                fprintf(fp1,"%s",a_name);
+                fprintf(fp1,"\r\nThere are %d requests.\r\n",id);
+				
+                while(c<id){
+                    if(strcmp(status_arr[c],"Accepted")==0){acc++;}
+                    else if(strcmp(status_arr[c],"Rejected")==0){rej++;}
+                    c++;
+                }
+                fprintf(fp1,"Number of request accepted: %d\r\n",acc);
+                fprintf(fp1,"Number of request rejected: %d\r\n\r\n",rej);
+				
 				for (a = 0; a < 14; a ++) {
-					for (b = 0; b < 5; b ++) {
-						if(b==0){
-							if(a<2){
-								fprintf(fp1, "%s%-12d", "2019-4-0",a + 8);
-							}
-							else{
-								fprintf(fp1, "%s%-13d", "2019-4-",a + 8);
-							}
-						}
-						else{
-							if (strcmp(timetable[b-1][a], "") != 0) {
-								fprintf(fp1, "%-20s", timetable[b-1][a]);	
-							}
-							else{
-								fprintf(fp1,"%-20s","X");
-							}
-						}
+                    for (b = 0; b < 4; b ++) {
+						if(strcmp(timetable[b][a],"N/A")==0){NA++;}
+						else if(strcmp(timetable[b][a],"")==0){X++;}
 					}
-					fprintf(fp1,"\r\n");
-					
 				}
-				fclose(fp1);
-				fp2= fopen("Report.dat","w+");
-				fprintf(fp2,"***Summary Reprot***\r\n\r\n");
-				fprintf(fp2,"Algorithm used: ");
-				while(buffer[count]!=' '){
-					fprintf(fp2,"%c",buffer[count]);
-					count++;
+				fprintf(fp1,"Number of time slots used: %d (%d%)",4*14-X-NA,((4*14-X-NA)*100/(4*14-X)*100)/100);
+                fclose(fp1);
+				fp2= fopen(filename2,"w+");
+				fprintf(fp2,"***Log File - %s***\r\n",a_name);
+				fprintf(fp2,"%-8s","ID");
+				fprintf(fp2,"%-40s","Event");
+				fprintf(fp2,"%-s\r\n","Accepted/Rejected");
+				fprintf(fp2,"-------------------------------------------------------------\r\n");
+				for(count=0;count<id;count++){
+					fprintf(fp2,"000%-5d",count+1);
+					fprintf(fp2,"%-42s",request[count]);
+					fprintf(fp2,"%-s\r\n",status_arr[count]);
 				}
-				count=6;
-				fprintf(fp2,"\r\nThere are %d requests.\r\n",id);
-				while(status_arr[x]!=NULL){
-					fprintf(fp2,"%s\r\n",status_arr[x]);
-					if(status_arr[x]=="Accepted"){acc++;}
-					else if(status_arr[x]=="Rejected"){rej++;}
-					x++;
-				}
-				fprintf(fp2,"Number of request accepted: %d\r\n",acc);
-				fprintf(fp2,"Number of request rejected: %d\r\n\r\n",rej);
-				write(fd[s_write_pipe][1], "OK", 2);
-                fclose(fp2);
+				fclose(fp2);
+				
             }
             
             /* close all the pipe ends when the scheduling module stops writing (process ends) */
