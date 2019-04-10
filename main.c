@@ -1548,7 +1548,7 @@ int main(int argc, const char * argv[]) {
                     fprintf(fp1,"\r\n");
                     
                 }
-                fprintf(fp1,"\r\n***Summary Reprot***\r\n\r\n");
+                fprintf(fp1,"\r\n***Summary Report***\r\n\r\n");
                 fprintf(fp1,"Algorithm used: ");
                 fprintf(fp1,"%s",a_name);
                 fprintf(fp1,"\r\nThere are %d requests.\r\n",id);
