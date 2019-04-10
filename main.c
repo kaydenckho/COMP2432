@@ -338,6 +338,7 @@ int main(int argc, const char * argv[]) {
             
             /* read user inputs until the write end of input module is closed */
             while((a = read(fd[i_read_pipe][0], buffer, 50)) > 0) {
+                write(fd[i_write_pipe][1], "OK", 2); /* for synchronization (the input module can now write new data to the pipe as the scheduling module finishes reading old data in the pipe) */
                 buffer[a] = 0;
                 
                 /* read the first 5 characters to determine to type of command */
@@ -373,8 +374,6 @@ int main(int argc, const char * argv[]) {
                             strcpy(timetable[b][a], "N/A"); /* N/A means that that period is added but with no assignment */
                         }
                     }
-                    
-                    write(fd[i_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module is ready to read new data when it finishes processing old data) */
                     
                 }
                 /* addRevision / addActivity / addAssignment / addProject */
@@ -473,8 +472,6 @@ int main(int argc, const char * argv[]) {
                     
                     id ++; /* increment the id */
                     
-                    write(fd[i_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module is ready to read new data when it finishes processing old data) */
-                    
                 }
                 /* runS3 */
                 else if (strcmp(command, "runS3") == 0) {
@@ -490,20 +487,20 @@ int main(int argc, const char * argv[]) {
                         /* TO BE WRITTEN */
                     }
                     
-                    read(fd[oa_read_pipe][0], syn, 10); /* for synchronization (wait until the output & analyzer module is ready to read new data) */
+                    read(fd[oa_read_pipe][0], syn, 10); /* for synchronization (wait until the output & analyzer module finishes reading old data in the pipe) */
                     write(fd[oa_write_pipe][1], buffer, strlen(buffer)); /* send the user input as a string to the output & analyzer module */
                     
-                    read(fd[oa_read_pipe][0], syn, 10); /* for synchronization (wait until the output & analyzer module is ready to read time table) */
+					read(fd[oa_read_pipe][0], syn, 10);
+					write(fd[oa_write_pipe][1], &id, sizeof(id));
+					
+					read(fd[oa_read_pipe][0], syn, 10);
+					write(fd[oa_write_pipe][1], status_arr, 1000*sizeof(char));
+					
+                    read(fd[oa_read_pipe][0], syn, 10); /* for synchronization (wait until the output & analyzer module finishes reading old data in the pipe) */
                     write(fd[oa_write_pipe][1], timetable, 4*14*50*sizeof(char)); /* send the time table to the output & analyzer module */
                     
                     /* CAN BE DELETED!!!!!!!!!! JUST FOR TESTING / DEMONSTRATION ============================== */
-                    /*
-                    for (a = 0; a < 14; a ++) {
-                        for (b = 0; b < 4; b ++) {
-                            if (strcmp(timetable[b][a], "") != 0) printf("Day 2019-4-%d Time %d:00 : %s\n", a + 8, b + 19, timetable[b][a]);
-                            
-                        }
-                    }
+                    
                     
                     for (a = 0; a < id; a ++) {
                         if (status_arr[a] == NULL) {
@@ -513,7 +510,7 @@ int main(int argc, const char * argv[]) {
                             printf("ID: %d Type: %s Status: %s Progress: %d%% Event_name: %s Date: %d-%d-%d Time: %d:00 Duration: %d\n", a + 1, type_arr[a], status_arr[a], progress_arr[a], event_name_arr[a], date_arr[a].year, date_arr[a].month, date_arr[a].day, time_arr[a], duration_arr[a]);
                         }
                     }
-                    */
+                    
                     /* CAN BE DELETED!!!!!!!!!! JUST FOR TESTING / DEMONSTRATION ============================== */
                     
                     /* reset the status of valid requests for next scheduling */
@@ -530,8 +527,6 @@ int main(int argc, const char * argv[]) {
                             if (strcmp(timetable[b][a], "") != 0) strcpy(timetable[b][a], "N/A");
                         }
                     }
-                    
-                    write(fd[i_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module is ready to read new data when it finishes processing old data) */
                 }
             }
             
@@ -551,9 +546,16 @@ int main(int argc, const char * argv[]) {
         
         /* 2nd child (Parent: input module, 2st child: output&analyzer module) */
         if (pid==2){
+			int x=0; /*counting status*/
+			int acc=0;/*number of accepted*/
+			int rej=0;/*number of rejected*/
+			char * status_arr[1000] = {NULL};
+			int id=0;
+			int count=6;
             int s_read_pipe = 3; /* fd[3] is the pipe for output&analyzer module to read from scheduling module */
             int s_write_pipe = 2; /* fd[2] is the pipe for output&analyzer module to write to scheduling module */
             FILE * fp1;
+			FILE * fp2;
             /* close unused pipe ends */
             for (a = 0; a < 4; a ++) {
                 if (a != s_read_pipe && a != s_write_pipe) {
@@ -570,22 +572,69 @@ int main(int argc, const char * argv[]) {
             
             /* read user inputs until the write end of scheduling module is closed */
             while((a = read(fd[s_read_pipe][0], buffer, 50)) > 0 ) {
-                buffer[a] = 0;
-                write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the output & analyzer module is ready to read the time table from scheduling module) */
-                read(fd[s_read_pipe][0], timetable, 4*14*50*sizeof(char)); /* read time table from scheduling module */
-                
-                /* CAN BE DELETED!!!!!!!!!! JUST FOR TESTING / DEMONSTRATION ============================== */
-                /*
-                for (a = 0; a < 14; a ++) {
-                    for (b = 0; b < 4; b ++) {
-                        if (strcmp(timetable[b][a], "") != 0) printf("Day 2019-4-%d Time %d:00 : %s\n", a + 8, b + 19, timetable[b][a]);
-                        
-                    }
-                }
-                 */
-                /* CAN BE DELETED!!!!!!!!!! JUST FOR TESTING / DEMONSTRATION ============================== */
-                
-                write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the output & analyzer module is ready to read new data from scheduling module when it finishes processing old data) */
+                write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module can now write the time to the pipe as the output & analyzer module finishes reading old data in the pipe) */
+                read(fd[s_read_pipe][0], &id, sizeof(id));
+				write(fd[s_write_pipe][1], "OK", 2);
+				read(fd[s_read_pipe][0], &status_arr, 1000*sizeof(char));
+				write(fd[s_write_pipe][1], "OK", 2);
+				fp1= fopen("timetable.dat","w+");
+				fprintf(fp1,"Alice Timetable\r\n");
+				fprintf(fp1,"2019-04-08 to 2019-04-21\r\n");
+				fprintf(fp1,"Algorithm: ");
+				while(buffer[count]!=' '){
+					fprintf(fp1,"%c",buffer[count]);
+					count++;
+				}
+				count=6;
+				fprintf(fp1,"\r\n\r\n");
+				read(fd[s_read_pipe][0],timetable,4*14*50*sizeof(char));
+				fprintf(fp1,"%-20s","Date");
+				fprintf(fp1,"%-20s","19:00");
+				fprintf(fp1,"%-20s","20:00");
+				fprintf(fp1,"%-20s","21:00");
+				fprintf(fp1,"%-20s\r\n","22:00");
+				for (a = 0; a < 14; a ++) {
+					for (b = 0; b < 5; b ++) {
+						if(b==0){
+							if(a<2){
+								fprintf(fp1, "%s%-12d", "2019-4-0",a + 8);
+							}
+							else{
+								fprintf(fp1, "%s%-13d", "2019-4-",a + 8);
+							}
+						}
+						else{
+							if (strcmp(timetable[b-1][a], "") != 0) {
+								fprintf(fp1, "%-20s", timetable[b-1][a]);	
+							}
+							else{
+								fprintf(fp1,"%-20s","X");
+							}
+						}
+					}
+					fprintf(fp1,"\r\n");
+					
+				}
+				fclose(fp1);
+				fp2= fopen("Report.dat","w+");
+				fprintf(fp2,"***Summary Reprot***\r\n\r\n");
+				fprintf(fp2,"Algorithm used: ");
+				while(buffer[count]!=' '){
+					fprintf(fp2,"%c",buffer[count]);
+					count++;
+				}
+				count=6;
+				fprintf(fp2,"\r\nThere are %d requests.\r\n",id);
+				while(status_arr[x]!=NULL){
+					fprintf(fp2,"%s\r\n",status_arr[x]);
+					if(status_arr[x]=="Accepted"){acc++;}
+					else if(status_arr[x]=="Rejected"){rej++;}
+					x++;
+				}
+				fprintf(fp2,"Number of request accepted: %d\r\n",acc);
+				fprintf(fp2,"Number of request rejected: %d\r\n\r\n",rej);
+				write(fd[s_write_pipe][1], "OK", 2);
+                fclose(fp2);
             }
             
             /* close all the pipe ends when the scheduling module stops writing (process ends) */
@@ -629,7 +678,7 @@ int main(int argc, const char * argv[]) {
                 free(return_string); /* free the allocated space */
                 /* send the input to scheduler only if the input for addPeriod is valid */
                 if (input[44] == '1') {
-                    read(fd[s_read_pipe][0], syn, 10); /* for synchronization (wait until the scheduling module is ready to read new data) */
+                    read(fd[s_read_pipe][0], syn, 10); /* for synchronization (wait until the scheduling module finishes reading old data in the pipe) */
                     write(fd[s_write_pipe][1], input, strlen(input));
                 }
             }
@@ -637,7 +686,7 @@ int main(int argc, const char * argv[]) {
                 return_string = validateEvent(&id, command, stdin);
                 strcpy(input, return_string);
                 free(return_string); /* free the allocated space */
-                read(fd[s_read_pipe][0], syn, 10); /* for synchronization (wait until the scheduling module is ready to read new data) */
+                read(fd[s_read_pipe][0], syn, 10); /* for synchronization (wait until the scheduling module finishes reading old data in the pipe) */
                 write(fd[s_write_pipe][1], input, strlen(input)); /* send the input to scheduler */
             }
             else if (strcmp(command, "addBatch") == 0) {
@@ -656,9 +705,8 @@ int main(int argc, const char * argv[]) {
                 while (fscanf(fp, "%s", command) == 1) {
                     return_string = validateEvent(&id, command, fp);
                     strcpy(input, return_string);
-                    
                     free(return_string); /* free the allocated space */
-                    read(fd[s_read_pipe][0], syn, 10); /* for synchronization (wait until the scheduling module is ready to read new data) */
+                    read(fd[s_read_pipe][0], syn, 10); /* for synchronization (wait until the scheduling module finishes reading old data in the pipe) */
                     write(fd[s_write_pipe][1], input, strlen(input)); /* send the input to scheduler */
                 }
                 fclose(fp); /* close the file */
@@ -675,7 +723,7 @@ int main(int argc, const char * argv[]) {
                 scanf("%s", file_name); /* scan filename */
                 strcat(input, file_name); /* concatenate the filename to the input */
                 if (strcmp(algorithm, "FCFS") == 0 || strcmp(algorithm, "EDF") == 0) {
-                    read(fd[s_read_pipe][0], syn, 10); /* for synchronization (wait until the scheduling module is ready to read new data) */
+                    read(fd[s_read_pipe][0], syn, 10); /* for synchronization (wait until the scheduling module finishes reading old data in the pipe) */
                     write(fd[s_write_pipe][1], input, strlen(input)); /* send the input to scheduler */
                 }
             }
