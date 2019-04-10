@@ -2,17 +2,17 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
 /* structure for a date (Year + Month + Day) */
-struct date {
+typedef struct date {
     int year;
     int month;
     int day;
-};
+}date, Date;
 
-typedef struct date Date;
 typedef struct date * Date_Ptr;
 
 /* function prototype */
