@@ -549,7 +549,6 @@ int main(int argc, const char * argv[]) {
             int s_write_pipe = 2; /* fd[2] is the pipe for output&analyzer module to write to scheduling module */
             FILE * fp1;
             FILE * fp2;
-			int progress=0;
             /* close unused pipe ends */
             for (a = 0; a < 4; a ++) {
                 if (a != s_read_pipe && a != s_write_pipe) {
@@ -647,26 +646,24 @@ int main(int argc, const char * argv[]) {
 						else if(strcmp(timetable[b][a],"")==0){X++;}
 					}
 				}
-				for(count=0;count<id;count++){
-					fprintf(fp1,"%d",progress_arr[count]);
-					progress+=progress_arr[count];
-				}
-				if(progress/acc!=100&&progress/acc!=0){
-					fprintf(fp1,"Number of time slots used: %d (%d",4*14-X-NA,progress/acc);
-					fprintf(fp1,"%)");
-				}
-				else{fprintf(fp1,"Number of time slots used: %d",4*14-X-NA);}
+				fprintf(fp1,"Number of time slots used: %d (%d",4*14-X-NA,((4*14-X-NA)*100/(4*14-X)*100)/100);
+				fprintf(fp1,"%)");
+				
 				
                 fclose(fp1);
 				fp2= fopen(filename2,"w+");
 				fprintf(fp2,"***Log File - %s***\r\n",a_name);
 				fprintf(fp2,"%-8s","ID");
-				fprintf(fp2,"%-40s","Event");
+				fprintf(fp2,"%-43s","Event");
 				fprintf(fp2,"%-s\r\n","Accepted/Rejected");
 				fprintf(fp2,"-------------------------------------------------------------\r\n");
 				for(count=0;count<id;count++){
 					fprintf(fp2,"000%-5d",count+1);
-					fprintf(fp2,"%-42s",request[count]);
+					if(progress_arr[count]!=100&&progress_arr[count]!=0){
+						fprintf(fp2,"%s(%-d",request[count],progress_arr[count]);
+						fprintf(fp2,"%-7s","%)");
+					}
+					else{fprintf(fp2,"%-45s",request[count]);}
 					fprintf(fp2,"%-s\r\n",status_arr[count]);
 				}
 				fclose(fp2);
