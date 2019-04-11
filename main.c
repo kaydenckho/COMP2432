@@ -817,10 +817,8 @@ int main(int argc, const char * argv[]) {
 			void EDF_RunS3(){
 				edf_entry_list* current_PA = NULL;
 				int PA_r_cost = 0;
-				int PA_id = 0;
 				edf_entry_list* current_RA = NULL;
 				int RA_r_cost = 0;
-				int RA_id = 0;
 				edf_timetable_list* current_slot = NULL;
 				
 				int i = 1;
@@ -837,7 +835,6 @@ int main(int argc, const char * argv[]) {
 					}
 					if(found==0){
 						*current = NULL;
-						PA_id = 0;
 					}
 					else{
 						*current = temp;	
@@ -856,7 +853,6 @@ int main(int argc, const char * argv[]) {
 					}
 					if(found==0){
 						*current = NULL;
-						PA_id = 0;
 					}
 					else{
 						*current = temp;
@@ -952,8 +948,10 @@ int main(int argc, const char * argv[]) {
 						//A P/A is finished
 						if(PA_r_cost<=0 || (date_cmp(current_PA->entry.edf_date,current_slot->timeslot.edf_date)==0 && current_slot->timeslot.edf_time==edf_end_hr-1)){
 							//printf("Current PA finished, finding next PA.\n");
-							float temp = ((current_PA->entry.edf_cost-PA_r_cost)/current_PA->entry.edf_cost)*100;
+							float temp = 1;
+							temp = ((temp*current_PA->entry.edf_cost-PA_r_cost)/current_PA->entry.edf_cost)*100;
 							progress_arr[current_PA->entry.id] = (int)temp;
+							//printf("%d has completed\n", (int) temp);
 							do{
 								getNextPA(&current_PA);
 								if(current_PA!=NULL && !validate_PA()){
