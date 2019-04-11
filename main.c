@@ -901,14 +901,14 @@ int main(int argc, const char * argv[]) {
 				}
 				
 				void time_check(){
-					printf("Activity starts now.\n");
+					//printf("Activity starts now.\n");
 					int days_til_dead = (date_days(current_PA->entry.edf_date, current_slot->timeslot.edf_date)-1);
-					printf("Activity encountered: days til dead is: %d\n",days_til_dead);
+					//printf("Activity encountered: days til dead is: %d\n",days_til_dead);
 					int cost_left = (days_til_dead*edf_period_day_hrs) + (edf_end_hr -(current_slot->timeslot.edf_time));
-					printf("Activity encountered: cost left is: %d\n",cost_left);
+					//printf("Activity encountered: cost left is: %d\n",cost_left);
 					//Still have time to finish P/A
 					if((cost_left-(current_RA->entry.edf_cost)) >= PA_r_cost){
-						printf("u can join current activity\n");
+						//printf("u can join current activity\n");
 						assign_slot(current_slot, current_RA->entry.name);
 						RA_r_cost-=1;
 						strcpy(status_arr[current_RA->entry.id],"Accepted");
@@ -921,7 +921,7 @@ int main(int argc, const char * argv[]) {
 								if(current_RA!=NULL && !validate_RA()){
 									strcpy(status_arr[current_RA->entry.id],"Rejected");
 									progress_arr[current_RA->entry.id] = 0;
-									printf("RA ID %d: is rejected (can't validate)\n", current_RA->entry.id);
+									//printf("RA ID %d: is rejected (can't validate)\n", current_RA->entry.id);
 								}
 							}while(current_RA!=NULL && !validate_RA());							
 							if(current_RA!=NULL){
@@ -930,7 +930,7 @@ int main(int argc, const char * argv[]) {
 						}
 					}
 					else{
-						printf("u don't have time to join current activity\n");
+						//printf("u don't have time to join current activity\n");
 						strcpy(status_arr[current_RA->entry.id],"Rejected");
 						progress_arr[current_RA->entry.id] = 0;
 						getNextRA(&current_RA);
@@ -959,7 +959,7 @@ int main(int argc, const char * argv[]) {
 								if(current_PA!=NULL && !validate_PA()){
 									strcpy(status_arr[current_PA->entry.id],"Rejected");
 									progress_arr[current_PA->entry.id] = 0;
-									printf("PA ID%d : is rejected\n", current_PA->entry.id);
+									//printf("PA ID%d : is rejected\n", current_PA->entry.id);
 								}
 							}while(current_PA!=NULL && !validate_PA());
 								
@@ -993,7 +993,7 @@ int main(int argc, const char * argv[]) {
 						){
 						strcpy(status_arr[current_PA->entry.id],"Rejected");
 						progress_arr[current_PA->entry.id] = 0;
-						printf("start PA ID%d : is rejected\n", current_PA->entry.id);
+						//printf("start PA ID%d : is rejected\n", current_PA->entry.id);
 						getNextPA(&current_PA);
 					}
 					
@@ -1013,7 +1013,7 @@ int main(int argc, const char * argv[]) {
 							&& ((current_RA->entry.edf_time<edf_start_hr)||(current_RA->entry.edf_time+current_RA->entry.edf_cost>edf_end_hr))){
 						strcpy(status_arr[current_RA->entry.id],"Rejected");
 						progress_arr[current_RA->entry.id] = 0;
-						printf("start RA ID%d : is rejected\n", current_RA->entry.id);
+						//printf("start RA ID%d : is rejected\n", current_RA->entry.id);
 						getNextRA(&current_RA);
 					}
 					
@@ -1038,7 +1038,7 @@ int main(int argc, const char * argv[]) {
 				
 				// Assign until out of slots
 				while(i<=total_slots){
-					printf("i=%d;\n",i);
+					//printf("i=%d;\n",i);
 					//There's still at least 1 PA / 1 RA
 					if(current_PA!=NULL&&current_RA!=NULL){
 						//2 entries on same date
@@ -1047,7 +1047,7 @@ int main(int argc, const char * argv[]) {
 							if((current_slot->timeslot.edf_time==current_RA->entry.edf_time)||(RA_r_cost<current_RA->entry.edf_cost)){
 								// RA in progress
 								if(RA_r_cost<(current_RA->entry.edf_cost)){
-									printf("Activity in progress.\n");
+									//printf("Activity in progress.\n");
 									assign_slot(current_slot, current_RA->entry.name);
 									RA_r_cost-=1;
 									//A R/A is finished
@@ -1059,7 +1059,7 @@ int main(int argc, const char * argv[]) {
 											if(current_RA!=NULL && !validate_RA()){
 												strcpy(status_arr[current_RA->entry.id],"Rejected");
 												progress_arr[current_RA->entry.id] = 0;
-												printf("RA ID %d: is rejected (can't validate)\n", current_RA->entry.id);
+												//printf("RA ID %d: is rejected (can't validate)\n", current_RA->entry.id);
 											}
 										}while(current_RA!=NULL && !validate_RA());										
 										if(current_RA!=NULL){
@@ -1126,7 +1126,7 @@ int main(int argc, const char * argv[]) {
 				int i, j = 0;				
 				for(i=0; i < 14; i++){
 					for(j=0; j <4; j++){
-						printf("Timetable print : Day=%d  Slot=%d is %s\n",i,j,timetable[j][i]);
+						//printf("Timetable print : Day=%d  Slot=%d is %s\n",i,j,timetable[j][i]);
 					}
 				}
 			}
@@ -1146,7 +1146,7 @@ int main(int argc, const char * argv[]) {
 					for(j=0; j <4; j++){
 						if(temp_ptr!=NULL && strcmp(temp_ptr->timeslot.name,"N/A")!=0){
 							strncpy(timetable[j][i], temp_ptr->timeslot.name, sizeof(timetable[j][i])-1);
-							printf("i=%d j=%d imported name : %s\n", i,j,timetable[j][i]);
+							//printf("i=%d j=%d imported name : %s\n", i,j,timetable[j][i]);
 						}
 						else{
 							strcpy(timetable[j][i],"N/A");
@@ -1182,7 +1182,7 @@ int main(int argc, const char * argv[]) {
 				
 				if(strcmp(command,"runS3")!=0){
 					if(atoi(parameters[i]) == 0){
-						printf("Scheduler received invalid message from pipe! Nothing need to do.\n");
+						//printf("Scheduler received invalid message from pipe! Nothing need to do.\n");
 						return;
 					}
 				}
@@ -1219,16 +1219,18 @@ int main(int argc, const char * argv[]) {
 				// Start scheduling
 				else if(strcmp(command,"runS3")==0){
 					if(strcmp(parameters[0],"EDF")==0){
-						printf("EDF command handler: Running S3 EDF.\n");
+						//printf("EDF command handler: Running S3 EDF.\n");
 						print_entries();
 						EDF_RunS3();
 						print_slots();
 						import_EDF_2_timetable();
 						//print_timetable_edf();
 					}
+					/*
 					else{
 						printf("EDF Scheduler received runS3 from pipe! But nothing need to do.\n");
 					}
+					*/
 				}
 				/*
 				// Exit program 
