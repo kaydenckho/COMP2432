@@ -1192,6 +1192,8 @@ int main(int argc, const char * argv[]) {
 				//Add period
 				if(strcmp(command,"addPeriod")==0){
 					//printf("Running add period.\n");
+					timetable_head = NULL;
+					timetable_tail = NULL;
 					addPeriod(parameters);
 				}
 				
