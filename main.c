@@ -1220,9 +1220,9 @@ int main(int argc, const char * argv[]) {
 				else if(strcmp(command,"runS3")==0){
 					if(strcmp(parameters[0],"EDF")==0){
 						//printf("EDF command handler: Running S3 EDF.\n");
-						print_entries();
+						//print_entries();
 						EDF_RunS3();
-						print_slots();
+						//print_slots();
 						import_EDF_2_timetable();
 						//print_timetable_edf();
 					}
@@ -1260,7 +1260,7 @@ int main(int argc, const char * argv[]) {
                 
 				char edf_input[50];
 				strcpy(edf_input, buffer);
-				printf("EDF received command: %s\n", edf_input);
+				//printf("EDF received command: %s\n", edf_input);
 				
 				if(strcmp(command, "runS3") != 0){
 					command_handler(id, edf_input);
@@ -1504,7 +1504,17 @@ int main(int argc, const char * argv[]) {
                 write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module can now write the time to the pipe as the output & analyzer module finishes reading old data in the pipe) */
 				read(fd[s_read_pipe][0],timetable,4*14*50*sizeof(char));
                 write(fd[s_write_pipe][1], "OK", 2); /* for synchronization (the scheduling module can now write the time to the pipe as the output & analyzer module finishes reading old data in the pipe) */
-                while(buffer[count]!=' '){
+                
+				/* Initializing */
+				NA=0; /*counting time slots used (how many N/A)*/
+				acc=0;/*number of accepted*/
+				rej=0;/*number of rejected*/
+				X=0; /*counting time slots used (how many unused period)*/
+				c=0; /*counting status*/
+  			    memset(a_name, 0, sizeof(a_name));
+				count=6;
+				
+				while(buffer[count]!=' '){
 					a_name[count-6]=buffer[count];
                     count++;
                 }
