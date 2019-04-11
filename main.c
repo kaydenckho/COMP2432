@@ -838,7 +838,6 @@ int main(int argc, const char * argv[]) {
 					}
 					else{
 						*current = temp;	
-						PA_id = (*current)->entry.id;
 					}
 				}
 				
@@ -856,7 +855,6 @@ int main(int argc, const char * argv[]) {
 					}
 					else{
 						*current = temp;
-						RA_id = (*current)->entry.id;
 					}
 					return;
 				}
