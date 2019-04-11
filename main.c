@@ -984,7 +984,8 @@ int main(int argc, const char * argv[]) {
 						temp = temp->next_entry;
 					}
 					while((current_PA!=NULL) 
-							&& !date_inrange(edf_start_date,current_PA->entry.edf_date,edf_end_date) 
+						&& 
+						!date_inrange(edf_start_date,current_PA->entry.edf_date,edf_end_date) 
 						){
 						strcpy(status_arr[current_PA->entry.id],"Rejected");
 						progress_arr[current_PA->entry.id] = 0;
@@ -1004,9 +1005,15 @@ int main(int argc, const char * argv[]) {
 						temp = temp->next_entry;
 					}
 		
-					while((current_RA!=NULL) 
-							&& (!date_inrange(edf_start_date,current_RA->entry.edf_date, edf_end_date)) 
-							&& ((current_RA->entry.edf_time<edf_start_hr)||(current_RA->entry.edf_time+current_RA->entry.edf_cost>edf_end_hr))){
+					while((current_RA!=NULL)
+						&&
+						(
+							(!date_inrange(edf_start_date,current_RA->entry.edf_date, edf_end_date))
+							||
+							((current_RA->entry.edf_time<edf_start_hr)||(current_RA->entry.edf_time+current_RA->entry.edf_cost>edf_end_hr))
+						)
+						
+						){
 						strcpy(status_arr[current_RA->entry.id],"Rejected");
 						progress_arr[current_RA->entry.id] = 0;
 						//printf("start RA ID%d : is rejected\n", current_RA->entry.id);
