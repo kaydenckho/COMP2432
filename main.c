@@ -980,8 +980,7 @@ int main(int argc, const char * argv[]) {
 					//Get the first PA / RA
 					edf_entry_list* temp = entry_head;
 					int found = 0;
-					while(found==0&&temp->next_entry!=NULL){
-						//If entry is assignment or project
+					while(found==0&&temp!=NULL){
 						if(temp->entry.type_piority<3){
 							current_PA = temp;
 							found=1;
@@ -1000,14 +999,15 @@ int main(int argc, const char * argv[]) {
 					
 					found = 0;
 					temp = entry_head;
-					while(found==0&&temp->next_entry!=NULL){
-						//If entry is revision / activity
+					
+					while(found==0&&temp!=NULL){
 						if(temp->entry.type_piority>2){
 							current_RA = temp;
 							found=1;
 						}
 						temp = temp->next_entry;
 					}
+		
 					while((current_RA!=NULL) 
 							&& (!date_inrange(edf_start_date,current_RA->entry.edf_date, edf_end_date)) 
 							&& ((current_RA->entry.edf_time<edf_start_hr)||(current_RA->entry.edf_time+current_RA->entry.edf_cost>edf_end_hr))){
